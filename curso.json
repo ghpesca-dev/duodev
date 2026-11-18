@@ -1,0 +1,2321 @@
+{
+  "schemaVersion": 1,
+  "id": "node-backend",
+  "title": "Dev Backend Node.js",
+  "language": "pt-BR",
+  "source": "https://claude.ai/artifact/6SxH8ytwepkHso4VEq7FSq",
+  "units": [
+    {
+      "id": "u0",
+      "order": 0,
+      "title": "JS moderno e Node",
+      "description": "Sintaxe moderna, assincronia, event loop, módulos nativos, streams e npm.",
+      "lessons": [
+        {
+          "id": "u0-l1",
+          "title": "Sintaxe moderna",
+          "concepts": [
+            "let/const",
+            "arrow functions",
+            "template literals",
+            "destructuring",
+            "spread/rest",
+            "?. e ??"
+          ],
+          "xp": 10,
+          "questions": [
+            {
+              "id": "u0-l1-q1",
+              "type": "multiple_choice",
+              "prompt": "Qual é o valor de `resto`?",
+              "code": "const { a, ...resto } = { a: 1, b: 2, c: 3 };",
+              "options": [
+                "undefined",
+                "[2, 3]",
+                "{ b: 2, c: 3 }",
+                "{ a: 1, b: 2, c: 3 }"
+              ],
+              "answer": 2,
+              "explanation": "O rest (`...resto`) no destructuring junta as propriedades que sobraram em um novo objeto."
+            },
+            {
+              "id": "u0-l1-q2",
+              "type": "true_false",
+              "prompt": "`const` impede que as propriedades de um objeto sejam alteradas.",
+              "answer": false,
+              "explanation": "`const` só impede reatribuir a variável. `obj.x = 1` continua funcionando; para congelar use `Object.freeze`."
+            },
+            {
+              "id": "u0-l1-q3",
+              "type": "multiple_choice",
+              "prompt": "Qual expressão resulta em `0`?",
+              "options": [
+                "0 ?? 10",
+                "null ?? 10",
+                "undefined || 10",
+                "0 || 10"
+              ],
+              "answer": 0,
+              "explanation": "`??` só usa o valor da direita quando o da esquerda é `null` ou `undefined`. `||` troca qualquer valor falsy, inclusive `0`."
+            },
+            {
+              "id": "u0-l1-q4",
+              "type": "fill_blank",
+              "prompt": "`usuario?.endereco?.cidade ___ 'Desconhecida'` devolve o padrão só quando a cidade é null ou undefined.",
+              "options": [
+                "??",
+                "||",
+                "?.",
+                "&&"
+              ],
+              "answer": "??",
+              "accept": [
+                "??"
+              ],
+              "explanation": "O operador de coalescência nula `??` não troca `''` nem `0`, ao contrário de `||`."
+            },
+            {
+              "id": "u0-l1-q5",
+              "type": "multiple_choice",
+              "prompt": "O que é verdade sobre `this` em uma arrow function?",
+              "options": [
+                "Ela sempre aponta para o objeto global",
+                "Ela aponta para o objeto que chamou a função",
+                "Ela não tem `this` próprio: usa o do escopo onde foi criada",
+                "Ela não pode acessar `this`"
+              ],
+              "answer": 2,
+              "explanation": "Arrow functions capturam o `this` léxico. Por isso são ótimas em callbacks, mas ruins como métodos de objeto."
+            },
+            {
+              "id": "u0-l1-q6",
+              "type": "fill_blank",
+              "prompt": "Template literals, como `` `Olá, ${nome}` ``, são delimitados por ___.",
+              "options": [
+                "aspas duplas",
+                "chaves",
+                "crases",
+                "aspas simples"
+              ],
+              "answer": "crases",
+              "accept": [
+                "crases",
+                "crase",
+                "`"
+              ],
+              "explanation": "Só strings entre crases (`) aceitam interpolação com `${}` e várias linhas."
+            }
+          ]
+        },
+        {
+          "id": "u0-l2",
+          "title": "Arrays, Map, Set e closures",
+          "concepts": [
+            "map/filter/reduce",
+            "find/some/every",
+            "Map e Set",
+            "closures",
+            "classes"
+          ],
+          "xp": 10,
+          "questions": [
+            {
+              "id": "u0-l2-q1",
+              "type": "multiple_choice",
+              "prompt": "Qual método devolve o PRIMEIRO elemento que satisfaz uma condição?",
+              "options": [
+                "map",
+                "filter",
+                "some",
+                "find"
+              ],
+              "answer": 3,
+              "explanation": "`find` para no primeiro acerto e devolve o elemento (ou `undefined`). `filter` devolve um array com todos."
+            },
+            {
+              "id": "u0-l2-q2",
+              "type": "multiple_choice",
+              "prompt": "Qual é o resultado?",
+              "code": "[1, 2, 3].reduce((acc, n) => acc + n, 0)",
+              "options": [
+                "[1, 2, 3]",
+                "\"123\"",
+                "6",
+                "0"
+              ],
+              "answer": 2,
+              "explanation": "`reduce` acumula: 0+1=1, 1+2=3, 3+3=6. O `0` é o valor inicial do acumulador."
+            },
+            {
+              "id": "u0-l2-q3",
+              "type": "true_false",
+              "prompt": "`[2, 4, 5].some(n => n % 2 === 0)` só retorna true se TODOS os números forem pares.",
+              "answer": false,
+              "explanation": "`some` retorna true se ALGUM elemento passa no teste. Quem exige todos é `every`."
+            },
+            {
+              "id": "u0-l2-q4",
+              "type": "multiple_choice",
+              "prompt": "Qual é o jeito idiomático de remover duplicados de um array?",
+              "options": [
+                "new Map(arr)",
+                "arr.filter(Set)",
+                "[...new Set(arr)]",
+                "arr.unique()"
+              ],
+              "answer": 2,
+              "explanation": "Um `Set` só guarda valores únicos; o spread transforma de volta em array."
+            },
+            {
+              "id": "u0-l2-q5",
+              "type": "true_false",
+              "prompt": "Em um `Map`, a chave pode ser de qualquer tipo, inclusive um objeto.",
+              "answer": true,
+              "explanation": "Diferente de objetos comuns (chaves viram string), `Map` aceita qualquer valor como chave e mantém a ordem de inserção."
+            },
+            {
+              "id": "u0-l2-q6",
+              "type": "multiple_choice",
+              "prompt": "O que é uma closure?",
+              "options": [
+                "Uma classe sem construtor",
+                "Uma função que lembra as variáveis do escopo onde foi criada",
+                "Um bloco try/catch/finally",
+                "Uma função que encerra o processo"
+              ],
+              "answer": 1,
+              "explanation": "Ex.: `criarContador()` devolve uma função que continua acessando `count` mesmo depois que `criarContador` terminou."
+            }
+          ]
+        },
+        {
+          "id": "u0-l3",
+          "title": "Módulos e async/await",
+          "concepts": [
+            "ESM vs CommonJS",
+            "Promises",
+            "async/await",
+            "try/catch assíncrono"
+          ],
+          "xp": 10,
+          "questions": [
+            {
+              "id": "u0-l3-q1",
+              "type": "multiple_choice",
+              "prompt": "Qual linha usa ESM?",
+              "options": [
+                "import fs from 'node:fs';",
+                "exports.fs = fs;",
+                "const fs = require('fs');",
+                "module.exports = fs;"
+              ],
+              "answer": 0,
+              "explanation": "ESM usa `import`/`export`. `require` e `module.exports` são CommonJS, o sistema antigo do Node."
+            },
+            {
+              "id": "u0-l3-q2",
+              "type": "fill_blank",
+              "prompt": "Para o Node tratar os arquivos .js como ESM, o package.json precisa de `\"type\": \"___\"`.",
+              "options": [
+                "esm",
+                "commonjs",
+                "import",
+                "module"
+              ],
+              "answer": "module",
+              "accept": [
+                "module"
+              ],
+              "explanation": "Com `\"type\": \"module\"`, `.js` vira ESM. Sem isso, use a extensão `.mjs`."
+            },
+            {
+              "id": "u0-l3-q3",
+              "type": "multiple_choice",
+              "prompt": "O que uma função `async` sempre retorna?",
+              "options": [
+                "Uma Promise",
+                "undefined",
+                "Um callback",
+                "O valor do return diretamente"
+              ],
+              "answer": 0,
+              "explanation": "Mesmo `async () => 42` retorna `Promise<42>`. Por isso quem chama precisa de `await` ou `.then`."
+            },
+            {
+              "id": "u0-l3-q4",
+              "type": "true_false",
+              "prompt": "Dentro de uma função async, `try/catch` captura a rejeição de uma Promise usada com `await`.",
+              "answer": true,
+              "explanation": "O `await` transforma a rejeição em exceção lançada naquela linha, então o `catch` pega."
+            },
+            {
+              "id": "u0-l3-q5",
+              "type": "true_false",
+              "prompt": "Se você esquecer o `await` antes de uma Promise que falha dentro do `try`, o `catch` ainda captura o erro.",
+              "answer": false,
+              "explanation": "Sem `await`, o `try` termina antes da Promise rejeitar. O erro vira uma rejeição não tratada."
+            },
+            {
+              "id": "u0-l3-q6",
+              "type": "multiple_choice",
+              "prompt": "Quando `Promise.all([p1, p2, p3])` rejeita?",
+              "options": [
+                "Nunca, ela espera todas",
+                "Assim que qualquer uma rejeita",
+                "Só depois de um timeout",
+                "Só se todas rejeitarem"
+              ],
+              "answer": 1,
+              "explanation": "`Promise.all` falha rápido. Se quiser o resultado de todas, sucesso ou erro, use `Promise.allSettled`."
+            }
+          ]
+        },
+        {
+          "id": "u0-l4",
+          "title": "Event loop",
+          "concepts": [
+            "call stack",
+            "microtasks vs macrotasks",
+            "por que await não bloqueia",
+            "concorrência vs paralelismo"
+          ],
+          "xp": 10,
+          "questions": [
+            {
+              "id": "u0-l4-q1",
+              "type": "multiple_choice",
+              "prompt": "Em que ordem os logs aparecem?",
+              "code": "console.log('A');\nsetTimeout(() => console.log('B'), 0);\nPromise.resolve().then(() => console.log('C'));\nconsole.log('D');",
+              "options": [
+                "A, D, B, C",
+                "A, B, C, D",
+                "A, D, C, B",
+                "A, C, D, B"
+              ],
+              "answer": 2,
+              "explanation": "Primeiro o código síncrono (A, D). Depois as microtasks (o `.then`, C). Por último as macrotasks (o `setTimeout`, B)."
+            },
+            {
+              "id": "u0-l4-q2",
+              "type": "true_false",
+              "prompt": "`await` bloqueia a thread do Node inteira até a Promise resolver.",
+              "answer": false,
+              "explanation": "`await` pausa só aquela função async. O event loop continua atendendo outras requisições enquanto isso."
+            },
+            {
+              "id": "u0-l4-q3",
+              "type": "multiple_choice",
+              "prompt": "Por que um loop síncrono pesado (ex.: 2 s de cálculo) trava o servidor?",
+              "options": [
+                "Ele ocupa a call stack e o event loop não processa mais nada",
+                "As Promises expiram",
+                "O garbage collector para",
+                "O Node cria uma thread nova por requisição"
+              ],
+              "answer": 0,
+              "explanation": "O JavaScript do Node roda em uma thread principal. Trabalho síncrono longo impede o loop de atender outras tarefas."
+            },
+            {
+              "id": "u0-l4-q4",
+              "type": "multiple_choice",
+              "prompt": "Qual destes callbacks entra na fila de microtasks?",
+              "options": [
+                "O de `setInterval`",
+                "O de `.then()` de uma Promise",
+                "O de `setTimeout`",
+                "O de `setImmediate`"
+              ],
+              "answer": 1,
+              "explanation": "Callbacks de Promise (e `queueMicrotask`) são microtasks e rodam antes da próxima macrotask."
+            },
+            {
+              "id": "u0-l4-q5",
+              "type": "true_false",
+              "prompt": "O Node executa o seu código JavaScript em uma única thread principal.",
+              "answer": true,
+              "explanation": "Por baixo, o libuv usa um pool de threads para parte do I/O, mas o seu JS roda em uma thread só."
+            },
+            {
+              "id": "u0-l4-q6",
+              "type": "multiple_choice",
+              "prompt": "Qual a diferença entre concorrência e paralelismo?",
+              "options": [
+                "Concorrência é alternar entre tarefas; paralelismo é executar ao mesmo tempo",
+                "Paralelismo é alternar; concorrência é ao mesmo tempo",
+                "São sinônimos",
+                "Concorrência só existe com várias CPUs"
+              ],
+              "answer": 0,
+              "explanation": "O event loop dá concorrência com uma thread. Paralelismo exige várias threads ou processos (ex.: worker_threads)."
+            }
+          ]
+        },
+        {
+          "id": "u0-l5",
+          "title": "Módulos nativos e streams",
+          "concepts": [
+            "fs/promises",
+            "path",
+            "events",
+            "streams, pipeline e Buffer"
+          ],
+          "xp": 10,
+          "questions": [
+            {
+              "id": "u0-l5-q1",
+              "type": "multiple_choice",
+              "prompt": "Qual módulo monta caminhos de arquivo que funcionam em Windows e Linux?",
+              "options": [
+                "url",
+                "path",
+                "fs",
+                "os"
+              ],
+              "answer": 1,
+              "explanation": "`path.join('dados', 'a.csv')` usa o separador certo de cada sistema."
+            },
+            {
+              "id": "u0-l5-q2",
+              "type": "multiple_choice",
+              "prompt": "Por que ler um CSV de 5 GB com stream em vez de `readFile`?",
+              "options": [
+                "Stream é sempre mais rápido para arquivos pequenos",
+                "Streams não precisam de tratamento de erro",
+                "readFile não lê CSV",
+                "Processa em pedaços (chunks) sem carregar tudo na memória"
+              ],
+              "answer": 3,
+              "explanation": "`readFile` coloca o arquivo inteiro na memória. A stream lê pedaço por pedaço, com uso de memória constante."
+            },
+            {
+              "id": "u0-l5-q3",
+              "type": "fill_blank",
+              "prompt": "`await ___(origem, transformar, destino)`, de `node:stream/promises`, liga streams e trata erros e backpressure.",
+              "options": [
+                "stream",
+                "connect",
+                "pipeline",
+                "pipe"
+              ],
+              "answer": "pipeline",
+              "accept": [
+                "pipeline"
+              ],
+              "explanation": "`pipeline` encerra todas as streams se uma falhar e devolve uma Promise. O `.pipe()` antigo não propaga erros."
+            },
+            {
+              "id": "u0-l5-q4",
+              "type": "true_false",
+              "prompt": "`Buffer` representa dados binários brutos no Node.",
+              "answer": true,
+              "explanation": "Os chunks de uma stream de arquivo chegam como `Buffer`, a menos que você defina um encoding."
+            },
+            {
+              "id": "u0-l5-q5",
+              "type": "multiple_choice",
+              "prompt": "Qual método de um EventEmitter registra um ouvinte de evento?",
+              "options": [
+                "emit",
+                "listen",
+                "trigger",
+                "on"
+              ],
+              "answer": 3,
+              "explanation": "`emitter.on('pedido', fn)` ouve; `emitter.emit('pedido', dados)` dispara."
+            }
+          ]
+        },
+        {
+          "id": "u0-l6",
+          "title": "npm e o processo",
+          "concepts": [
+            "package.json e scripts",
+            "dependências vs devDependencies",
+            "lockfile e semver",
+            "process.argv/env e exit codes"
+          ],
+          "xp": 10,
+          "questions": [
+            {
+              "id": "u0-l6-q1",
+              "type": "multiple_choice",
+              "prompt": "Onde o Vitest (só usado em testes) deve ficar?",
+              "options": [
+                "dependencies",
+                "scripts",
+                "peerDependencies",
+                "devDependencies"
+              ],
+              "answer": 3,
+              "explanation": "Ferramentas de desenvolvimento vão em devDependencies e não são instaladas em produção com `npm ci --omit=dev`."
+            },
+            {
+              "id": "u0-l6-q2",
+              "type": "multiple_choice",
+              "prompt": "No semver, `^1.4.2` aceita quais versões?",
+              "options": [
+                ">= 1.4.2 e < 1.5.0",
+                "Só 1.4.2",
+                ">= 1.4.2 e < 2.0.0",
+                "Qualquer versão"
+              ],
+              "answer": 2,
+              "explanation": "O `^` aceita minor e patch novos, mas não uma major nova, que pode quebrar a API."
+            },
+            {
+              "id": "u0-l6-q3",
+              "type": "true_false",
+              "prompt": "O `package-lock.json` deve ser commitado no repositório.",
+              "answer": true,
+              "explanation": "Ele trava as versões exatas de toda a árvore, para que todos (e o CI) instalem a mesma coisa."
+            },
+            {
+              "id": "u0-l6-q4",
+              "type": "fill_blank",
+              "prompt": "Os argumentos passados na linha de comando ficam em `process.___`.",
+              "options": [
+                "args",
+                "params",
+                "argv",
+                "env"
+              ],
+              "answer": "argv",
+              "accept": [
+                "argv"
+              ],
+              "explanation": "`process.argv[0]` é o node, `[1]` o script; seus argumentos começam em `[2]`."
+            },
+            {
+              "id": "u0-l6-q5",
+              "type": "multiple_choice",
+              "prompt": "Que código de saída um CLI deve usar quando falha?",
+              "options": [
+                "Diferente de 0",
+                "200",
+                "-0",
+                "0"
+              ],
+              "answer": 0,
+              "explanation": "0 significa sucesso. Scripts e o CI usam o código de saída para saber se algo deu errado."
+            },
+            {
+              "id": "u0-l6-q6",
+              "type": "multiple_choice",
+              "prompt": "O que `node --watch app.js` faz?",
+              "options": [
+                "Reinicia o processo quando um arquivo muda",
+                "Roda os testes",
+                "Compila TypeScript",
+                "Mostra o uso de memória"
+              ],
+              "answer": 0,
+              "explanation": "Substitui o nodemon na maioria dos casos. Os testes nativos rodam com `node --test`."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "u1",
+      "order": 1,
+      "title": "API REST",
+      "description": "HTTP, rotas com Fastify, validação com Zod, erros padronizados e configuração.",
+      "lessons": [
+        {
+          "id": "u1-l1",
+          "title": "Fundamentos de HTTP",
+          "concepts": [
+            "métodos",
+            "status codes",
+            "headers",
+            "query string, params e body"
+          ],
+          "xp": 10,
+          "questions": [
+            {
+              "id": "u1-l1-q1",
+              "type": "multiple_choice",
+              "prompt": "Qual status indica que um recurso foi criado?",
+              "options": [
+                "204",
+                "302",
+                "200",
+                "201"
+              ],
+              "answer": 3,
+              "explanation": "201 Created, de preferência com o recurso no corpo ou um header `Location`."
+            },
+            {
+              "id": "u1-l1-q2",
+              "type": "multiple_choice",
+              "prompt": "Qual a diferença entre PUT e PATCH?",
+              "options": [
+                "PATCH cria; PUT atualiza",
+                "PUT substitui o recurso inteiro; PATCH altera parte dele",
+                "PUT só funciona com formulários",
+                "São idênticos"
+              ],
+              "answer": 1,
+              "explanation": "No PUT você manda a representação completa. No PATCH, só os campos que mudam."
+            },
+            {
+              "id": "u1-l1-q3",
+              "type": "multiple_choice",
+              "prompt": "Qual a diferença entre 400 e 422?",
+              "options": [
+                "400: não autenticado; 422: sem permissão",
+                "400: requisição malformada; 422: bem formada, mas viola regras de validação",
+                "São iguais",
+                "400: erro do servidor; 422: erro do cliente"
+              ],
+              "answer": 1,
+              "explanation": "JSON quebrado é 400. JSON válido com `email` inválido ou campo faltando costuma ser 422."
+            },
+            {
+              "id": "u1-l1-q4",
+              "type": "fill_blank",
+              "prompt": "Em `GET /tarefas?status=feita`, `status` é um parâmetro de ___.",
+              "options": [
+                "body",
+                "query string",
+                "rota (path)",
+                "header"
+              ],
+              "answer": "query string",
+              "accept": [
+                "query string",
+                "query"
+              ],
+              "explanation": "Query string vem depois do `?` e serve para filtros, paginação e ordenação."
+            },
+            {
+              "id": "u1-l1-q5",
+              "type": "true_false",
+              "prompt": "GET deve ser seguro: não deve alterar dados no servidor.",
+              "answer": true,
+              "explanation": "GET pode ser repetido, cacheado e pré-carregado por navegadores. Mudanças vão em POST, PUT, PATCH ou DELETE."
+            },
+            {
+              "id": "u1-l1-q6",
+              "type": "multiple_choice",
+              "prompt": "Qual status usar quando o e-mail de cadastro já existe?",
+              "options": [
+                "409",
+                "201",
+                "500",
+                "404"
+              ],
+              "answer": 0,
+              "explanation": "409 Conflict indica conflito com o estado atual do recurso."
+            },
+            {
+              "id": "u1-l1-q7",
+              "type": "multiple_choice",
+              "prompt": "O que retorna um 204?",
+              "options": [
+                "Recurso criado",
+                "Sucesso sem corpo na resposta",
+                "Erro de validação",
+                "Redirecionamento"
+              ],
+              "answer": 1,
+              "explanation": "Comum em DELETE e em atualizações que não precisam devolver nada."
+            }
+          ]
+        },
+        {
+          "id": "u1-l2",
+          "title": "Rotas REST com Fastify",
+          "concepts": [
+            "convenções REST",
+            "servidor com módulo http",
+            "rotas, plugins e hooks",
+            "encapsulamento"
+          ],
+          "xp": 10,
+          "questions": [
+            {
+              "id": "u1-l2-q1",
+              "type": "multiple_choice",
+              "prompt": "Qual rota segue a convenção REST para buscar uma tarefa?",
+              "options": [
+                "GET /getTarefa?id=42",
+                "GET /tarefas/42",
+                "GET /tarefa_buscar/42",
+                "POST /tarefas/buscar/42"
+              ],
+              "answer": 1,
+              "explanation": "Recursos no plural, identificados na URL; o verbo HTTP diz a ação."
+            },
+            {
+              "id": "u1-l2-q2",
+              "type": "true_false",
+              "prompt": "Dá para subir um servidor HTTP só com o módulo nativo `http`, sem framework.",
+              "answer": true,
+              "explanation": "`http.createServer((req, res) => ...)` funciona. Fazer isso uma vez mostra o que o Fastify esconde: roteamento, parse do body, serialização."
+            },
+            {
+              "id": "u1-l2-q3",
+              "type": "fill_blank",
+              "prompt": "No Fastify, o hook ___ roda assim que a requisição chega, antes do handler.",
+              "options": [
+                "onReady",
+                "onSend",
+                "onRequest",
+                "onClose"
+              ],
+              "answer": "onRequest",
+              "accept": [
+                "onRequest"
+              ],
+              "explanation": "Hooks são o equivalente aos middlewares. `onRequest` é bom para autenticação e logs de entrada."
+            },
+            {
+              "id": "u1-l2-q4",
+              "type": "multiple_choice",
+              "prompt": "O que significa o encapsulamento de plugins no Fastify?",
+              "options": [
+                "Decorators e hooks registrados num plugin não vazam para fora dele",
+                "Plugins são criptografados",
+                "Cada plugin roda em um processo separado",
+                "Plugins não podem ter rotas"
+              ],
+              "answer": 0,
+              "explanation": "Isso permite, por exemplo, aplicar autenticação só às rotas de um plugin. `fastify-plugin` quebra o encapsulamento quando você quer compartilhar."
+            },
+            {
+              "id": "u1-l2-q5",
+              "type": "multiple_choice",
+              "prompt": "Qual status é típico para um DELETE bem-sucedido?",
+              "options": [
+                "202",
+                "301",
+                "201",
+                "204"
+              ],
+              "answer": 3,
+              "explanation": "204 No Content: deu certo e não há nada a devolver."
+            }
+          ]
+        },
+        {
+          "id": "u1-l3",
+          "title": "Validação e erros",
+          "concepts": [
+            "Zod",
+            "nunca confiar no body",
+            "erro centralizado",
+            "erros de domínio"
+          ],
+          "xp": 10,
+          "questions": [
+            {
+              "id": "u1-l3-q1",
+              "type": "fill_blank",
+              "prompt": "Complete o schema: `z.object({ titulo: z.___().min(1) })`",
+              "options": [
+                "varchar",
+                "text",
+                "str",
+                "string"
+              ],
+              "answer": "string",
+              "accept": [
+                "string"
+              ],
+              "explanation": "Zod descreve a forma dos dados e valida em runtime. `.min(1)` impede título vazio."
+            },
+            {
+              "id": "u1-l3-q2",
+              "type": "multiple_choice",
+              "prompt": "O que `schema.safeParse(dados)` faz?",
+              "options": [
+                "Salva no banco",
+                "Valida e lança erro se inválido",
+                "Valida sem lançar exceção e devolve `{ success, data }` ou `{ success, error }`",
+                "Converte para JSON"
+              ],
+              "answer": 2,
+              "explanation": "`parse` lança `ZodError`; `safeParse` devolve um resultado que você inspeciona."
+            },
+            {
+              "id": "u1-l3-q3",
+              "type": "true_false",
+              "prompt": "Com tratamento de erros centralizado, cada rota monta a própria resposta de erro.",
+              "answer": false,
+              "explanation": "As rotas lançam erros; um único error handler (`setErrorHandler`) traduz tudo para o mesmo formato."
+            },
+            {
+              "id": "u1-l3-q4",
+              "type": "multiple_choice",
+              "prompt": "Qual é um bom formato único de erro?",
+              "options": [
+                "{ codigo, mensagem, detalhes }",
+                "Só a string do stack trace",
+                "Um status 200 com `ok: false`",
+                "HTML com a mensagem"
+              ],
+              "answer": 0,
+              "explanation": "Um formato estável deixa o cliente tratar erros de forma previsível. Nunca devolva stack trace em produção."
+            },
+            {
+              "id": "u1-l3-q5",
+              "type": "multiple_choice",
+              "prompt": "Como tratar a regra \"estoque insuficiente\"?",
+              "options": [
+                "Criar um erro de domínio (ex.: `EstoqueInsuficienteError`) e mapeá-lo para um status",
+                "Deixar o banco falhar",
+                "Fazer `console.log` e seguir",
+                "Retornar 500"
+              ],
+              "answer": 0,
+              "explanation": "Erros de domínio expressam regras de negócio e viram 409 ou 422, com mensagem clara."
+            },
+            {
+              "id": "u1-l3-q6",
+              "type": "true_false",
+              "prompt": "Validar só no front-end já é suficiente.",
+              "answer": false,
+              "explanation": "Qualquer um chama sua API direto (curl, Postman). O backend nunca confia no body."
+            }
+          ]
+        },
+        {
+          "id": "u1-l4",
+          "title": "Paginação, config e Express",
+          "concepts": [
+            "paginação, filtros e ordenação",
+            "variáveis de ambiente",
+            "Express para comparar"
+          ],
+          "xp": 10,
+          "questions": [
+            {
+              "id": "u1-l4-q1",
+              "type": "multiple_choice",
+              "prompt": "Com 20 itens por página, qual OFFSET busca a página 3?",
+              "options": [
+                "3",
+                "60",
+                "40",
+                "20"
+              ],
+              "answer": 2,
+              "explanation": "offset = (página - 1) × tamanho = 2 × 20 = 40."
+            },
+            {
+              "id": "u1-l4-q2",
+              "type": "fill_blank",
+              "prompt": "No Node 20+, `node ___=.env app.js` carrega variáveis de um arquivo sem instalar dotenv.",
+              "options": [
+                "--env-file",
+                "--config",
+                "--dotenv",
+                "--env"
+              ],
+              "answer": "--env-file",
+              "accept": [
+                "--env-file"
+              ],
+              "explanation": "A flag `--env-file` é nativa. Em produção, as variáveis vêm do ambiente da plataforma."
+            },
+            {
+              "id": "u1-l4-q3",
+              "type": "true_false",
+              "prompt": "Tudo bem deixar a senha do banco fixa no código se o repositório é privado.",
+              "answer": false,
+              "explanation": "Repositórios vazam, mudam de visibilidade e têm histórico. Configuração e segredos vêm do ambiente."
+            },
+            {
+              "id": "u1-l4-q4",
+              "type": "multiple_choice",
+              "prompt": "Qual é a assinatura de um middleware no Express?",
+              "options": [
+                "(req, res, next)",
+                "(ctx)",
+                "(req) => res",
+                "(request, reply)"
+              ],
+              "answer": 0,
+              "explanation": "Você chama `next()` para passar adiante. No Fastify o handler recebe `(request, reply)`."
+            },
+            {
+              "id": "u1-l4-q5",
+              "type": "multiple_choice",
+              "prompt": "Onde vão filtros e ordenação de uma listagem?",
+              "options": [
+                "Na query string: `?status=aberta&ordem=-criadoEm`",
+                "No path: `/tarefas/aberta/ordem`",
+                "No body de um GET",
+                "Em um header customizado"
+              ],
+              "answer": 0,
+              "explanation": "Query string é o lugar padrão para parâmetros opcionais de listagem."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "u2",
+      "order": 2,
+      "title": "Banco de dados",
+      "description": "SQL, modelagem, ORM, migrations e transações com PostgreSQL.",
+      "lessons": [
+        {
+          "id": "u2-l1",
+          "title": "Consultas SQL",
+          "concepts": [
+            "JOIN",
+            "GROUP BY e HAVING",
+            "subqueries e CTEs",
+            "índices e EXPLAIN"
+          ],
+          "xp": 10,
+          "questions": [
+            {
+              "id": "u2-l1-q1",
+              "type": "multiple_choice",
+              "prompt": "Qual JOIN devolve só as linhas que têm par nas duas tabelas?",
+              "options": [
+                "LEFT JOIN",
+                "INNER JOIN",
+                "FULL JOIN",
+                "CROSS JOIN"
+              ],
+              "answer": 1,
+              "explanation": "INNER JOIN exige correspondência dos dois lados."
+            },
+            {
+              "id": "u2-l1-q2",
+              "type": "multiple_choice",
+              "prompt": "Clientes sem nenhum pedido aparecem com qual JOIN de `clientes` para `pedidos`?",
+              "options": [
+                "INNER JOIN",
+                "LEFT JOIN",
+                "CROSS JOIN",
+                "Nenhum"
+              ],
+              "answer": 1,
+              "explanation": "LEFT JOIN mantém todas as linhas da esquerda; as colunas de pedidos vêm NULL."
+            },
+            {
+              "id": "u2-l1-q3",
+              "type": "fill_blank",
+              "prompt": "`SELECT cliente_id, SUM(total) FROM pedidos ___ cliente_id;`",
+              "options": [
+                "GROUP BY",
+                "HAVING",
+                "ORDER BY",
+                "WHERE"
+              ],
+              "answer": "GROUP BY",
+              "accept": [
+                "GROUP BY"
+              ],
+              "explanation": "Ao usar agregação (SUM, COUNT), as colunas não agregadas vão no GROUP BY."
+            },
+            {
+              "id": "u2-l1-q4",
+              "type": "multiple_choice",
+              "prompt": "Qual a diferença entre WHERE e HAVING?",
+              "options": [
+                "WHERE só funciona com JOIN",
+                "São iguais",
+                "HAVING é mais rápido",
+                "WHERE filtra linhas antes de agrupar; HAVING filtra grupos depois"
+              ],
+              "answer": 3,
+              "explanation": "Ex.: `HAVING SUM(total) > 1000` filtra clientes cujo total passa de 1000."
+            },
+            {
+              "id": "u2-l1-q5",
+              "type": "multiple_choice",
+              "prompt": "O que é uma CTE?",
+              "options": [
+                "Uma consulta nomeada com `WITH nome AS (...)` usada na consulta seguinte",
+                "Uma constraint",
+                "Um tipo de índice",
+                "Uma transação"
+              ],
+              "answer": 0,
+              "explanation": "CTEs deixam consultas complexas legíveis, em etapas."
+            },
+            {
+              "id": "u2-l1-q6",
+              "type": "true_false",
+              "prompt": "Índices aceleram leituras, mas têm custo nas escritas.",
+              "answer": true,
+              "explanation": "Cada INSERT/UPDATE precisa atualizar os índices. Crie para as colunas que você filtra e ordena de fato."
+            },
+            {
+              "id": "u2-l1-q7",
+              "type": "multiple_choice",
+              "prompt": "O EXPLAIN mostra `Seq Scan` em uma tabela grande filtrada por `cliente_id`. O que isso sugere?",
+              "options": [
+                "Provavelmente falta um índice em `cliente_id`",
+                "O banco está fora do ar",
+                "A consulta está ótima",
+                "Falta um JOIN"
+              ],
+              "answer": 0,
+              "explanation": "Seq Scan lê a tabela toda. Em tabelas grandes com filtro seletivo, um índice permite um Index Scan."
+            }
+          ]
+        },
+        {
+          "id": "u2-l2",
+          "title": "Modelagem",
+          "concepts": [
+            "chaves primária e estrangeira",
+            "normalização",
+            "relações 1:N e N:N"
+          ],
+          "xp": 10,
+          "questions": [
+            {
+              "id": "u2-l2-q1",
+              "type": "fill_blank",
+              "prompt": "Um cliente tem muitos pedidos: é uma relação 1:___.",
+              "options": [
+                "M:M",
+                "N",
+                "1",
+                "0"
+              ],
+              "answer": "N",
+              "accept": [
+                "N",
+                "n"
+              ],
+              "explanation": "Relação um-para-muitos."
+            },
+            {
+              "id": "u2-l2-q2",
+              "type": "multiple_choice",
+              "prompt": "Na relação 1:N clientes → pedidos, onde fica a chave estrangeira?",
+              "options": [
+                "Em pedidos (`pedidos.cliente_id`)",
+                "Em clientes (`clientes.pedido_id`)",
+                "Em uma tabela separada",
+                "Nas duas"
+              ],
+              "answer": 0,
+              "explanation": "A FK fica no lado \"muitos\"."
+            },
+            {
+              "id": "u2-l2-q3",
+              "type": "multiple_choice",
+              "prompt": "Como modelar pedidos com vários produtos (N:N)?",
+              "options": [
+                "Copiar o produto dentro do pedido como JSON",
+                "Uma FK em produtos para pedidos",
+                "Tabela intermediária `itens_pedido` com `pedido_id` e `produto_id`",
+                "Uma coluna `produtos` com IDs separados por vírgula"
+              ],
+              "answer": 2,
+              "explanation": "A tabela intermediária ainda guarda quantidade e preço no momento da venda."
+            },
+            {
+              "id": "u2-l2-q4",
+              "type": "multiple_choice",
+              "prompt": "O que uma chave estrangeira garante?",
+              "options": [
+                "Que a coluna não é nula",
+                "Que o valor aponta para uma linha que existe na outra tabela",
+                "Que a consulta é rápida",
+                "Que o valor é único"
+              ],
+              "answer": 1,
+              "explanation": "Integridade referencial: impede, por exemplo, um pedido de um cliente inexistente."
+            },
+            {
+              "id": "u2-l2-q5",
+              "type": "true_false",
+              "prompt": "A normalização ajuda a evitar dados duplicados e inconsistentes.",
+              "answer": true,
+              "explanation": "Ex.: o nome do cliente fica só em `clientes`, não repetido em cada pedido."
+            }
+          ]
+        },
+        {
+          "id": "u2-l3",
+          "title": "ORM e migrations",
+          "concepts": [
+            "Drizzle ou Prisma",
+            "migrations e seeds",
+            "camada de repositório",
+            "problema N+1"
+          ],
+          "xp": 10,
+          "questions": [
+            {
+              "id": "u2-l3-q1",
+              "type": "multiple_choice",
+              "prompt": "O que é uma migration?",
+              "options": [
+                "Uma alteração versionada do schema, aplicada em ordem",
+                "Mudar de PostgreSQL para MySQL",
+                "Um backup do banco",
+                "Um teste de integração"
+              ],
+              "answer": 0,
+              "explanation": "Migrations permitem recriar o banco do zero e evoluí-lo de forma igual em todo ambiente."
+            },
+            {
+              "id": "u2-l3-q2",
+              "type": "true_false",
+              "prompt": "Editar uma migration que já rodou em produção é uma boa prática.",
+              "answer": false,
+              "explanation": "Crie uma nova migration. Mudar uma antiga deixa os ambientes divergentes."
+            },
+            {
+              "id": "u2-l3-q3",
+              "type": "multiple_choice",
+              "prompt": "O que é o problema N+1?",
+              "options": [
+                "1 query para a lista + 1 query por item da lista",
+                "Um índice a mais que o necessário",
+                "Uma tabela com N+1 colunas",
+                "Um erro de off-by-one na paginação"
+              ],
+              "answer": 0,
+              "explanation": "Listar 100 pedidos e buscar o cliente de cada um = 101 queries. Resolva com JOIN, `IN (...)` ou o include do ORM."
+            },
+            {
+              "id": "u2-l3-q4",
+              "type": "multiple_choice",
+              "prompt": "Para que serve uma camada de repositório?",
+              "options": [
+                "Gerar a documentação",
+                "Fazer cache",
+                "Isolar o acesso a dados das rotas e das regras de negócio",
+                "Guardar o código no GitHub"
+              ],
+              "answer": 2,
+              "explanation": "As rotas chamam serviços, que usam repositórios. Trocar o ORM afeta só essa camada."
+            },
+            {
+              "id": "u2-l3-q5",
+              "type": "multiple_choice",
+              "prompt": "O que é um seed?",
+              "options": [
+                "A primeira migration",
+                "Um índice aleatório",
+                "A chave primária",
+                "Dados iniciais ou fictícios inseridos para desenvolvimento"
+              ],
+              "answer": 3,
+              "explanation": "Ex.: um usuário admin e alguns produtos para testar localmente."
+            },
+            {
+              "id": "u2-l3-q6",
+              "type": "true_false",
+              "prompt": "Drizzle é mais próximo do SQL; Prisma tem mais conteúdo em português.",
+              "answer": true,
+              "explanation": "Os dois funcionam bem. O importante é escolher um e ficar com ele."
+            }
+          ]
+        },
+        {
+          "id": "u2-l4",
+          "title": "Consistência",
+          "concepts": [
+            "transações",
+            "constraints",
+            "soft delete e timestamps",
+            "paginação por cursor",
+            "dinheiro sem float"
+          ],
+          "xp": 10,
+          "questions": [
+            {
+              "id": "u2-l4-q1",
+              "type": "fill_blank",
+              "prompt": "Uma transação usa BEGIN, COMMIT e ___.",
+              "options": [
+                "REVERT",
+                "UNDO",
+                "CANCEL",
+                "ROLLBACK"
+              ],
+              "answer": "ROLLBACK",
+              "accept": [
+                "ROLLBACK"
+              ],
+              "explanation": "ROLLBACK desfaz tudo que foi feito desde o BEGIN."
+            },
+            {
+              "id": "u2-l4-q2",
+              "type": "multiple_choice",
+              "prompt": "Por que gravar pedido e itens em uma única transação?",
+              "options": [
+                "Para evitar índices",
+                "Para ficar mais rápido",
+                "Para que tudo seja gravado ou nada seja",
+                "Porque o ORM exige"
+              ],
+              "answer": 2,
+              "explanation": "Se a baixa de estoque falhar no meio, não sobra um pedido sem itens."
+            },
+            {
+              "id": "u2-l4-q3",
+              "type": "true_false",
+              "prompt": "`0.1 + 0.2 === 0.3` é `true` em JavaScript.",
+              "answer": false,
+              "explanation": "Dá 0.30000000000000004. Por isso dinheiro nunca vai em float."
+            },
+            {
+              "id": "u2-l4-q4",
+              "type": "multiple_choice",
+              "prompt": "Como guardar valores monetários?",
+              "options": [
+                "Inteiros em centavos ou NUMERIC",
+                "Texto com vírgula",
+                "FLOAT",
+                "DOUBLE PRECISION"
+              ],
+              "answer": 0,
+              "explanation": "R$ 19,90 vira 1990 centavos. Sem erro de arredondamento."
+            },
+            {
+              "id": "u2-l4-q5",
+              "type": "multiple_choice",
+              "prompt": "O que `CHECK (estoque >= 0)` acrescenta?",
+              "options": [
+                "Um valor padrão 0",
+                "Um índice em estoque",
+                "Nada, é só documentação",
+                "O banco recusa estoque negativo, mesmo se o código tiver bug"
+              ],
+              "answer": 3,
+              "explanation": "Constraints são defesa em profundidade: a última barreira é o próprio banco."
+            },
+            {
+              "id": "u2-l4-q6",
+              "type": "multiple_choice",
+              "prompt": "O que é soft delete?",
+              "options": [
+                "Marcar a linha como excluída (ex.: `deleted_at`) em vez de apagá-la",
+                "Usar TRUNCATE",
+                "Apagar devagar",
+                "Apagar só o índice"
+              ],
+              "answer": 0,
+              "explanation": "Mantém histórico e permite restaurar. As consultas precisam filtrar `deleted_at IS NULL`."
+            },
+            {
+              "id": "u2-l4-q7",
+              "type": "multiple_choice",
+              "prompt": "Qual a vantagem da paginação por cursor sobre OFFSET?",
+              "options": [
+                "Funciona sem índice",
+                "Não precisa de ORDER BY",
+                "Permite pular direto para a página 50",
+                "Fica estável e rápida em tabelas grandes"
+              ],
+              "answer": 3,
+              "explanation": "`WHERE id > ultimo_id LIMIT 20` usa o índice; OFFSET alto precisa ler e descartar linhas."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "u3",
+      "order": 3,
+      "title": "Autenticação e segurança",
+      "description": "Senhas, JWT, refresh tokens, papéis e o OWASP API Top 10.",
+      "lessons": [
+        {
+          "id": "u3-l1",
+          "title": "Senhas e tokens",
+          "concepts": [
+            "hash com Argon2/bcrypt",
+            "salt",
+            "JWT",
+            "refresh token com rotação"
+          ],
+          "xp": 10,
+          "questions": [
+            {
+              "id": "u3-l1-q1",
+              "type": "multiple_choice",
+              "prompt": "Como armazenar senhas?",
+              "options": [
+                "Hash lento com salt (Argon2 ou bcrypt)",
+                "Texto puro em tabela separada",
+                "MD5",
+                "Criptografia reversível (AES)"
+              ],
+              "answer": 0,
+              "explanation": "Hash é de mão única e, sendo lento, torna a força bruta cara."
+            },
+            {
+              "id": "u3-l1-q2",
+              "type": "true_false",
+              "prompt": "SHA-256 puro é suficiente para senhas.",
+              "answer": false,
+              "explanation": "SHA-256 é rápido demais: GPUs testam bilhões por segundo. Use um algoritmo feito para senhas."
+            },
+            {
+              "id": "u3-l1-q3",
+              "type": "multiple_choice",
+              "prompt": "Para que serve o salt?",
+              "options": [
+                "Deixar o hash menor",
+                "Senhas iguais geram hashes diferentes, inutilizando tabelas pré-calculadas",
+                "Criptografar o hash",
+                "Permitir recuperar a senha"
+              ],
+              "answer": 1,
+              "explanation": "Argon2 e bcrypt geram e embutem o salt automaticamente."
+            },
+            {
+              "id": "u3-l1-q4",
+              "type": "true_false",
+              "prompt": "Qualquer pessoa com o token consegue ler o payload de um JWT.",
+              "answer": true,
+              "explanation": "O payload é só Base64URL. A assinatura garante que não foi alterado, mas não esconde nada. Nunca coloque segredos nele."
+            },
+            {
+              "id": "u3-l1-q5",
+              "type": "multiple_choice",
+              "prompt": "Por que usar access token curto + refresh token?",
+              "options": [
+                "Para usar menos memória",
+                "Para não precisar de senha",
+                "Um access token vazado vale por poucos minutos; o refresh pode ser revogado",
+                "Porque JWT não aceita expiração longa"
+              ],
+              "answer": 2,
+              "explanation": "O access token não é consultado no banco; o refresh token é, e pode ser invalidado."
+            },
+            {
+              "id": "u3-l1-q6",
+              "type": "fill_blank",
+              "prompt": "Refresh token com ___: cada uso gera um novo e invalida o anterior.",
+              "options": [
+                "replicação",
+                "compressão",
+                "rotação",
+                "herança"
+              ],
+              "answer": "rotação",
+              "accept": [
+                "rotação",
+                "rotacao"
+              ],
+              "explanation": "Se um token antigo for reutilizado, é sinal de roubo e a sessão inteira pode ser revogada."
+            }
+          ]
+        },
+        {
+          "id": "u3-l2",
+          "title": "Guardando e revogando tokens",
+          "concepts": [
+            "cookie httpOnly vs header",
+            "logout",
+            "rotas de cadastro e login"
+          ],
+          "xp": 10,
+          "questions": [
+            {
+              "id": "u3-l2-q1",
+              "type": "multiple_choice",
+              "prompt": "Qual a vantagem de guardar o token em cookie `httpOnly`?",
+              "options": [
+                "O JavaScript da página não consegue lê-lo, o que dificulta roubo por XSS",
+                "Elimina a necessidade de CSRF protection",
+                "Ele nunca expira",
+                "Não precisa de HTTPS"
+              ],
+              "answer": 0,
+              "explanation": "Em troca, cookies são enviados automaticamente; use `SameSite` e, se preciso, token CSRF."
+            },
+            {
+              "id": "u3-l2-q2",
+              "type": "true_false",
+              "prompt": "Guardar o token no localStorage protege contra XSS.",
+              "answer": false,
+              "explanation": "Qualquer script injetado na página lê o localStorage."
+            },
+            {
+              "id": "u3-l2-q3",
+              "type": "multiple_choice",
+              "prompt": "Como fazer logout com JWT sem estado?",
+              "options": [
+                "Apagar a chave secreta do JWT",
+                "Não dá para fazer logout",
+                "Revogar o refresh token no servidor e deixar o access token curto expirar",
+                "Mudar a senha do usuário"
+              ],
+              "answer": 2,
+              "explanation": "Por isso o access token precisa durar minutos, não dias."
+            },
+            {
+              "id": "u3-l2-q4",
+              "type": "multiple_choice",
+              "prompt": "Qual status para login com senha errada?",
+              "options": [
+                "401",
+                "404",
+                "422",
+                "403"
+              ],
+              "answer": 0,
+              "explanation": "401 = não autenticado. Use a mesma mensagem para usuário inexistente e senha errada, para não revelar quem tem conta."
+            }
+          ]
+        },
+        {
+          "id": "u3-l3",
+          "title": "Autorização e OWASP",
+          "concepts": [
+            "RBAC",
+            "autorização por recurso",
+            "BOLA/IDOR",
+            "mass assignment",
+            "CORS, helmet e rate limit",
+            "segredos"
+          ],
+          "xp": 10,
+          "questions": [
+            {
+              "id": "u3-l3-q1",
+              "type": "multiple_choice",
+              "prompt": "Autenticação vs autorização:",
+              "options": [
+                "São sinônimos",
+                "Autenticação: quem você é. Autorização: o que você pode fazer",
+                "Autenticação define papéis",
+                "Autorização vem antes"
+              ],
+              "answer": 1,
+              "explanation": "Primeiro você prova quem é (login); depois cada ação é checada contra suas permissões."
+            },
+            {
+              "id": "u3-l3-q2",
+              "type": "multiple_choice",
+              "prompt": "Usuário logado, mas sem permissão para a ação. Qual status?",
+              "options": [
+                "401",
+                "404",
+                "400",
+                "403"
+              ],
+              "answer": 3,
+              "explanation": "401 é \"não sei quem você é\"; 403 é \"sei quem você é e não pode\"."
+            },
+            {
+              "id": "u3-l3-q3",
+              "type": "multiple_choice",
+              "prompt": "Um vendedor troca o ID na URL e lê o pedido de outro vendedor. Que falha é essa?",
+              "options": [
+                "SQL injection",
+                "BOLA/IDOR",
+                "XSS",
+                "CSRF"
+              ],
+              "answer": 1,
+              "explanation": "Broken Object Level Authorization: a rota checou o login, mas não se o pedido é dele. É o item nº 1 do OWASP API Top 10."
+            },
+            {
+              "id": "u3-l3-q4",
+              "type": "multiple_choice",
+              "prompt": "O cliente manda `\"papel\": \"admin\"` no body do cadastro e a API aceita. Como se chama?",
+              "options": [
+                "Mass assignment",
+                "Replay attack",
+                "N+1",
+                "Rate limit"
+              ],
+              "answer": 0,
+              "explanation": "Defesa: um schema que lista explicitamente os campos aceitos e ignora o resto."
+            },
+            {
+              "id": "u3-l3-q5",
+              "type": "true_false",
+              "prompt": "CORS impede que qualquer cliente, inclusive curl, chame sua API.",
+              "answer": false,
+              "explanation": "CORS é aplicado pelo navegador. curl e servidores ignoram. Ele não substitui autenticação."
+            },
+            {
+              "id": "u3-l3-q6",
+              "type": "multiple_choice",
+              "prompt": "Por que ativar rate limit em login e cadastro?",
+              "options": [
+                "Para dificultar força bruta e abuso",
+                "Porque o JWT exige",
+                "Para economizar banco",
+                "Para acelerar o login"
+              ],
+              "answer": 0,
+              "explanation": "`@fastify/rate-limit` limita tentativas por IP ou usuário em uma janela de tempo."
+            },
+            {
+              "id": "u3-l3-q7",
+              "type": "true_false",
+              "prompt": "A resposta de `GET /usuarios/1` pode incluir o hash da senha, já que é um hash.",
+              "answer": false,
+              "explanation": "Exposição excessiva de dados. Defina schemas de resposta com só os campos públicos."
+            },
+            {
+              "id": "u3-l3-q8",
+              "type": "multiple_choice",
+              "prompt": "Para que serve um `.env.example` versionado?",
+              "options": [
+                "Configurar o CI",
+                "Documentar quais variáveis existem, sem os valores secretos",
+                "Substituir o .gitignore",
+                "Guardar os segredos de produção"
+              ],
+              "answer": 1,
+              "explanation": "O `.env` real fica no `.gitignore`."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "u4",
+      "order": 4,
+      "title": "Qualidade e entrega",
+      "description": "TypeScript, testes com Vitest, logs, Docker e CI.",
+      "lessons": [
+        {
+          "id": "u4-l1",
+          "title": "TypeScript",
+          "concepts": [
+            "tipos e interfaces",
+            "generics",
+            "strict",
+            "inferência do Zod",
+            "tsx vs tsc"
+          ],
+          "xp": 10,
+          "questions": [
+            {
+              "id": "u4-l1-q1",
+              "type": "true_false",
+              "prompt": "Os tipos do TypeScript existem em tempo de execução.",
+              "answer": false,
+              "explanation": "Eles somem na compilação. Por isso a entrada da API ainda precisa de validação em runtime, com Zod."
+            },
+            {
+              "id": "u4-l1-q2",
+              "type": "fill_blank",
+              "prompt": "`type Tarefa = z.___<typeof TarefaSchema>` gera o tipo a partir do schema.",
+              "options": [
+                "parse",
+                "type",
+                "extract",
+                "infer"
+              ],
+              "answer": "infer",
+              "accept": [
+                "infer"
+              ],
+              "explanation": "Um schema, duas utilidades: validação em runtime e tipo em compilação."
+            },
+            {
+              "id": "u4-l1-q3",
+              "type": "multiple_choice",
+              "prompt": "O que `\"strict\": true` faz?",
+              "options": [
+                "Liga checagens rigorosas, como `strictNullChecks` e proibição de `any` implícito",
+                "Torna o código mais rápido",
+                "Proíbe usar `let`",
+                "Exige testes"
+              ],
+              "answer": 0,
+              "explanation": "Pega erros de null/undefined antes de rodar."
+            },
+            {
+              "id": "u4-l1-q4",
+              "type": "multiple_choice",
+              "prompt": "Qual a diferença entre `any` e `unknown`?",
+              "options": [
+                "`any` é mais seguro",
+                "Nenhuma",
+                "`unknown` obriga checar o tipo antes de usar; `any` desliga a checagem",
+                "`unknown` só vale para números"
+              ],
+              "answer": 2,
+              "explanation": "Prefira `unknown` para dados de fora (JSON, erros em catch)."
+            },
+            {
+              "id": "u4-l1-q5",
+              "type": "multiple_choice",
+              "prompt": "O que faz a função `primeiro<T>(lista: T[]): T`?",
+              "options": [
+                "Funciona para qualquer tipo de lista e preserva o tipo do elemento",
+                "Retorna `any`",
+                "Só aceita listas de texto",
+                "Converte para `T`"
+              ],
+              "answer": 0,
+              "explanation": "Generics permitem reuso sem perder a tipagem."
+            },
+            {
+              "id": "u4-l1-q6",
+              "type": "multiple_choice",
+              "prompt": "tsx vs tsc:",
+              "options": [
+                "tsc executa; tsx compila",
+                "São a mesma ferramenta",
+                "tsx é só para React",
+                "tsx executa .ts direto; tsc checa tipos e compila para JS"
+              ],
+              "answer": 3,
+              "explanation": "No desenvolvimento roda com tsx; no build e no CI, `tsc` garante que os tipos estão corretos."
+            }
+          ]
+        },
+        {
+          "id": "u4-l2",
+          "title": "Testes automatizados",
+          "concepts": [
+            "testes unitários com Vitest",
+            "testes de integração",
+            "Testcontainers",
+            "cobertura"
+          ],
+          "xp": 10,
+          "questions": [
+            {
+              "id": "u4-l2-q1",
+              "type": "multiple_choice",
+              "prompt": "O que diferencia teste unitário de teste de integração?",
+              "options": [
+                "Integração não usa asserts",
+                "Não há diferença",
+                "Unitário testa uma função isolada; integração testa partes juntas (rota + banco)",
+                "Unitário é mais lento"
+              ],
+              "answer": 2,
+              "explanation": "Unitários são rápidos e numerosos; os de integração pegam erros de encaixe."
+            },
+            {
+              "id": "u4-l2-q2",
+              "type": "fill_blank",
+              "prompt": "`expect(calcularTotal(itens)).___(1500)` compara valores primitivos.",
+              "options": [
+                "is",
+                "toBe",
+                "toMatch",
+                "equals"
+              ],
+              "answer": "toBe",
+              "accept": [
+                "toBe"
+              ],
+              "explanation": "Para objetos e arrays use `toEqual`, que compara o conteúdo."
+            },
+            {
+              "id": "u4-l2-q3",
+              "type": "multiple_choice",
+              "prompt": "O que testar primeiro no mini-ERP?",
+              "options": [
+                "O README",
+                "Regras de negócio: total do pedido e baixa de estoque",
+                "Os getters e setters",
+                "A configuração do ESLint"
+              ],
+              "answer": 1,
+              "explanation": "É onde o bug custa caro e a lógica é mais complexa."
+            },
+            {
+              "id": "u4-l2-q4",
+              "type": "multiple_choice",
+              "prompt": "Para que serve o Testcontainers?",
+              "options": [
+                "Subir um PostgreSQL real em container durante os testes",
+                "Simular o navegador",
+                "Medir cobertura",
+                "Gerar dados aleatórios"
+              ],
+              "answer": 0,
+              "explanation": "Testar contra um banco real pega problemas que um mock esconderia."
+            },
+            {
+              "id": "u4-l2-q5",
+              "type": "true_false",
+              "prompt": "100% de cobertura garante que não há bugs.",
+              "answer": false,
+              "explanation": "Cobertura mostra que a linha rodou, não que o resultado foi verificado. Foque nas regras principais (meta de 70% nelas)."
+            }
+          ]
+        },
+        {
+          "id": "u4-l3",
+          "title": "Operação: logs, Docker e CI",
+          "concepts": [
+            "logs estruturados com Pino",
+            "config validada na inicialização",
+            "Dockerfile multi-stage",
+            "docker compose",
+            "GitHub Actions"
+          ],
+          "xp": 10,
+          "questions": [
+            {
+              "id": "u4-l3-q1",
+              "type": "multiple_choice",
+              "prompt": "Por que logs estruturados (JSON)?",
+              "options": [
+                "São mais bonitos no terminal",
+                "Ficam fáceis de filtrar e buscar por campo em ferramentas de log",
+                "Ocupam menos disco",
+                "Substituem os testes"
+              ],
+              "answer": 1,
+              "explanation": "Ex.: buscar todos os logs com `pedidoId: 42`. O Fastify já usa Pino."
+            },
+            {
+              "id": "u4-l3-q2",
+              "type": "multiple_choice",
+              "prompt": "Uma falha inesperada ao gravar um pedido deve ser logada em qual nível?",
+              "options": [
+                "info",
+                "trace",
+                "error",
+                "debug"
+              ],
+              "answer": 2,
+              "explanation": "Níveis comuns, do mais grave ao menos: fatal, error, warn, info, debug, trace."
+            },
+            {
+              "id": "u4-l3-q3",
+              "type": "multiple_choice",
+              "prompt": "Por que validar a configuração na inicialização?",
+              "options": [
+                "Para esconder segredos",
+                "Porque o Docker exige",
+                "Para falhar cedo, com mensagem clara, se faltar uma variável",
+                "Para acelerar as requisições"
+              ],
+              "answer": 2,
+              "explanation": "Melhor cair no deploy do que no meio da noite na primeira requisição."
+            },
+            {
+              "id": "u4-l3-q4",
+              "type": "multiple_choice",
+              "prompt": "Qual a vantagem de um Dockerfile multi-stage?",
+              "options": [
+                "Roda vários containers",
+                "Dispensa o .dockerignore",
+                "Permite usar Windows",
+                "A imagem final fica menor, sem ferramentas de build"
+              ],
+              "answer": 3,
+              "explanation": "Um estágio instala e compila; o final copia só o necessário para rodar."
+            },
+            {
+              "id": "u4-l3-q5",
+              "type": "fill_blank",
+              "prompt": "`docker compose ___` sobe a API e o PostgreSQL definidos no docker-compose.yml.",
+              "options": [
+                "start",
+                "up",
+                "build",
+                "run"
+              ],
+              "answer": "up",
+              "accept": [
+                "up"
+              ],
+              "explanation": "`docker compose down` derruba tudo."
+            },
+            {
+              "id": "u4-l3-q6",
+              "type": "true_false",
+              "prompt": "Pelo Twelve-Factor App, a configuração deve vir de variáveis de ambiente.",
+              "answer": true,
+              "explanation": "O mesmo build roda em dev, teste e produção, mudando só o ambiente."
+            },
+            {
+              "id": "u4-l3-q7",
+              "type": "multiple_choice",
+              "prompt": "O que o pipeline de CI deve fazer a cada push?",
+              "options": [
+                "Rodar lint, testes e build",
+                "Apagar branches antigas",
+                "Fazer deploy direto sem testar",
+                "Atualizar dependências sozinho"
+              ],
+              "answer": 0,
+              "explanation": "Se algo quebrar, o selo do README fica vermelho antes de chegar em produção."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "u5",
+      "order": 5,
+      "title": "Assíncrono e integrações",
+      "description": "Redis, cache, APIs externas, filas com BullMQ e webhooks.",
+      "lessons": [
+        {
+          "id": "u5-l1",
+          "title": "Redis e cache",
+          "concepts": [
+            "tipos do Redis",
+            "TTL",
+            "cache-aside",
+            "invalidação"
+          ],
+          "xp": 10,
+          "questions": [
+            {
+              "id": "u5-l1-q1",
+              "type": "true_false",
+              "prompt": "O Redis guarda os dados principalmente em memória.",
+              "answer": true,
+              "explanation": "Por isso é muito rápido e serve para cache, filas e contadores."
+            },
+            {
+              "id": "u5-l1-q2",
+              "type": "multiple_choice",
+              "prompt": "O que é TTL?",
+              "options": [
+                "O número de réplicas",
+                "O tamanho máximo da chave",
+                "Um tipo de lista",
+                "O tempo até a chave expirar sozinha"
+              ],
+              "answer": 3,
+              "explanation": "Ex.: `SET relatorio:42 ... EX 300` expira em 5 minutos."
+            },
+            {
+              "id": "u5-l1-q3",
+              "type": "fill_blank",
+              "prompt": "No cache-aside, quando a chave não está no cache (cache ___), busca-se no banco e grava no cache.",
+              "options": [
+                "miss",
+                "fail",
+                "drop",
+                "hit"
+              ],
+              "answer": "miss",
+              "accept": [
+                "miss"
+              ],
+              "explanation": "Cache hit = achou no cache. Cache miss = não achou."
+            },
+            {
+              "id": "u5-l1-q4",
+              "type": "multiple_choice",
+              "prompt": "Qual o principal risco de usar cache?",
+              "options": [
+                "Perder dados do banco",
+                "Servir dado desatualizado",
+                "Expor senhas",
+                "Bloquear o event loop"
+              ],
+              "answer": 1,
+              "explanation": "Defina TTL e invalide (apague a chave) quando o dado for alterado."
+            },
+            {
+              "id": "u5-l1-q5",
+              "type": "multiple_choice",
+              "prompt": "Qual tipo do Redis é bom para guardar os campos de um objeto?",
+              "options": [
+                "Set",
+                "String com vírgulas",
+                "List",
+                "Hash"
+              ],
+              "answer": 3,
+              "explanation": "`HSET produto:1 nome \"Caneta\" preco 350`."
+            }
+          ]
+        },
+        {
+          "id": "u5-l2",
+          "title": "Consumindo APIs externas",
+          "concepts": [
+            "fetch nativo",
+            "timeout",
+            "retry com backoff",
+            "tratamento de falha"
+          ],
+          "xp": 10,
+          "questions": [
+            {
+              "id": "u5-l2-q1",
+              "type": "fill_blank",
+              "prompt": "`fetch(url, { signal: AbortSignal.___(5000) })` cancela a chamada após 5 s.",
+              "options": [
+                "wait",
+                "delay",
+                "timeout",
+                "abort"
+              ],
+              "answer": "timeout",
+              "accept": [
+                "timeout"
+              ],
+              "explanation": "Sem timeout, uma API lenta prende sua requisição e seus recursos."
+            },
+            {
+              "id": "u5-l2-q2",
+              "type": "multiple_choice",
+              "prompt": "O que é retry com backoff exponencial?",
+              "options": [
+                "Desistir após o primeiro erro",
+                "Tentar de novo com esperas crescentes: 1 s, 2 s, 4 s...",
+                "Trocar de API",
+                "Tentar de novo imediatamente várias vezes"
+              ],
+              "answer": 1,
+              "explanation": "Esperas crescentes, de preferência com um pouco de aleatoriedade (jitter), evitam sobrecarregar o serviço que já está com problema."
+            },
+            {
+              "id": "u5-l2-q3",
+              "type": "true_false",
+              "prompt": "Vale fazer retry de qualquer erro, inclusive 400 Bad Request.",
+              "answer": false,
+              "explanation": "4xx de validação vai falhar de novo. Faça retry em timeouts, erros de rede, 429 e 5xx."
+            },
+            {
+              "id": "u5-l2-q4",
+              "type": "multiple_choice",
+              "prompt": "A API de frete caiu. Qual é a melhor resposta do seu sistema?",
+              "options": [
+                "Deixar a exceção derrubar o servidor",
+                "Tentar para sempre",
+                "Retornar 200 vazio",
+                "Tratar a falha: usar fallback ou responder erro claro, sem derrubar o processo"
+              ],
+              "answer": 3,
+              "explanation": "Integrações falham; o sistema precisa degradar de forma controlada."
+            }
+          ]
+        },
+        {
+          "id": "u5-l3",
+          "title": "Filas com BullMQ",
+          "concepts": [
+            "filas, workers e jobs",
+            "retries e dead letter",
+            "idempotência",
+            "cron",
+            "graceful shutdown"
+          ],
+          "xp": 10,
+          "questions": [
+            {
+              "id": "u5-l3-q1",
+              "type": "multiple_choice",
+              "prompt": "Por que mover uma tarefa de 5 s para uma fila?",
+              "options": [
+                "Para não precisar de banco",
+                "A rota responde em milissegundos e o worker processa depois",
+                "Porque HTTP não aceita 5 s",
+                "A tarefa passa a durar menos"
+              ],
+              "answer": 1,
+              "explanation": "A requisição só enfileira o job e responde (ex.: 202 Accepted)."
+            },
+            {
+              "id": "u5-l3-q2",
+              "type": "multiple_choice",
+              "prompt": "O que é idempotência?",
+              "options": [
+                "Executar sem erros",
+                "Executar a mesma operação 2 vezes tem o mesmo efeito que executar 1",
+                "Executar em paralelo",
+                "Executar só uma vez por dia"
+              ],
+              "answer": 1,
+              "explanation": "Filas podem entregar o mesmo job mais de uma vez; o worker não pode duplicar o pedido."
+            },
+            {
+              "id": "u5-l3-q3",
+              "type": "multiple_choice",
+              "prompt": "Como garantir que reprocessar um evento não duplica o pedido?",
+              "options": [
+                "Desligar os retries",
+                "Torcer para não acontecer",
+                "Usar setTimeout",
+                "Usar o ID do evento como chave única (constraint UNIQUE ou jobId)"
+              ],
+              "answer": 3,
+              "explanation": "O segundo processamento esbarra na chave única e é ignorado."
+            },
+            {
+              "id": "u5-l3-q4",
+              "type": "multiple_choice",
+              "prompt": "Para onde vai um job que falhou mais vezes do que o limite de tentativas?",
+              "options": [
+                "Para o cache",
+                "Ele é apagado sem rastro",
+                "Ele volta para o início da fila para sempre",
+                "Para a fila de falhas (dead letter)"
+              ],
+              "answer": 3,
+              "explanation": "Lá ele pode ser inspecionado e reprocessado manualmente."
+            },
+            {
+              "id": "u5-l3-q5",
+              "type": "fill_blank",
+              "prompt": "Jobs recorrentes usam uma expressão ___, como `0 6 * * *` (todo dia às 6h).",
+              "options": [
+                "regex",
+                "semver",
+                "cron",
+                "glob"
+              ],
+              "answer": "cron",
+              "accept": [
+                "cron"
+              ],
+              "explanation": "Os 5 campos são: minuto, hora, dia do mês, mês e dia da semana."
+            },
+            {
+              "id": "u5-l3-q6",
+              "type": "multiple_choice",
+              "prompt": "O que é graceful shutdown no worker?",
+              "options": [
+                "Ao receber SIGTERM, para de pegar jobs novos e termina o atual antes de sair",
+                "Encerrar com `process.exit(0)` imediatamente",
+                "Reiniciar a cada hora",
+                "Desligar o Redis"
+              ],
+              "answer": 0,
+              "explanation": "Evita perder um job no meio de um deploy."
+            },
+            {
+              "id": "u5-l3-q7",
+              "type": "true_false",
+              "prompt": "O worker precisa obrigatoriamente rodar no mesmo processo da API.",
+              "answer": false,
+              "explanation": "Rodar separado permite escalar e reiniciar cada um de forma independente."
+            }
+          ]
+        },
+        {
+          "id": "u5-l4",
+          "title": "Webhooks",
+          "concepts": [
+            "assinatura HMAC",
+            "responder rápido e enfileirar",
+            "envio com retentativa",
+            "contrato versionado",
+            "correlação"
+          ],
+          "xp": 10,
+          "questions": [
+            {
+              "id": "u5-l4-q1",
+              "type": "multiple_choice",
+              "prompt": "Como saber se um webhook veio mesmo do remetente?",
+              "options": [
+                "Checar o User-Agent",
+                "Confiar no IP sempre",
+                "Checar se é JSON",
+                "Validar a assinatura HMAC com o segredo compartilhado"
+              ],
+              "answer": 3,
+              "explanation": "O remetente assina o corpo com o segredo; você recalcula e compara."
+            },
+            {
+              "id": "u5-l4-q2",
+              "type": "multiple_choice",
+              "prompt": "Por que responder 2xx rápido e enfileirar o processamento?",
+              "options": [
+                "Para pular a validação",
+                "O remetente tem timeout e reenviaria o evento",
+                "Porque 2xx é obrigatório em JSON",
+                "Para economizar banda"
+              ],
+              "answer": 1,
+              "explanation": "Valide a assinatura, grave/enfileire, responda. O trabalho pesado fica com o worker."
+            },
+            {
+              "id": "u5-l4-q3",
+              "type": "true_false",
+              "prompt": "Para comparar a assinatura recebida com a calculada, `===` é a melhor opção.",
+              "answer": false,
+              "explanation": "Use `crypto.timingSafeEqual`, que leva o mesmo tempo independentemente de onde a diferença está, evitando timing attacks."
+            },
+            {
+              "id": "u5-l4-q4",
+              "type": "multiple_choice",
+              "prompt": "Por que calcular o HMAC sobre o corpo BRUTO da requisição?",
+              "options": [
+                "Fazer parse e voltar para JSON pode mudar os bytes e invalidar a assinatura",
+                "Porque JSON não pode ser assinado",
+                "Porque é mais rápido",
+                "Não importa"
+              ],
+              "answer": 0,
+              "explanation": "Espaços e ordem de chaves mudam ao re-serializar."
+            },
+            {
+              "id": "u5-l4-q5",
+              "type": "multiple_choice",
+              "prompt": "Ao ENVIAR webhooks, o que seu sistema deve fazer?",
+              "options": [
+                "Enviar uma vez e esquecer",
+                "Esperar a resposta dentro da requisição do usuário",
+                "Enviar sem assinatura",
+                "Assinar, retentar com backoff e registrar cada entrega"
+              ],
+              "answer": 3,
+              "explanation": "O registro permite mostrar ao cliente o que foi entregue e reenviar."
+            },
+            {
+              "id": "u5-l4-q6",
+              "type": "true_false",
+              "prompt": "Um ID de correlação nos logs permite seguir um mesmo evento pela API, pela fila e pelo worker.",
+              "answer": true,
+              "explanation": "Gere o ID na entrada e propague em todos os logs e jobs."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "u6",
+      "order": 6,
+      "title": "Projeto final",
+      "description": "Arquitetura em camadas, feature com LLM, deploy, OpenAPI e observabilidade.",
+      "lessons": [
+        {
+          "id": "u6-l1",
+          "title": "Arquitetura",
+          "concepts": [
+            "camadas rotas → serviços → repositórios",
+            "injeção de dependência simples",
+            "ADRs"
+          ],
+          "xp": 10,
+          "questions": [
+            {
+              "id": "u6-l1-q1",
+              "type": "multiple_choice",
+              "prompt": "Qual é a ordem das camadas?",
+              "options": [
+                "Tudo na rota",
+                "Rotas → serviços → repositórios",
+                "Repositórios → rotas → serviços",
+                "Serviços → rotas → banco"
+              ],
+              "answer": 1,
+              "explanation": "A rota trata HTTP, o serviço tem a regra de negócio, o repositório fala com o banco."
+            },
+            {
+              "id": "u6-l1-q2",
+              "type": "multiple_choice",
+              "prompt": "Onde fica a regra \"pedido acima de R$ 5.000 precisa de aprovação\"?",
+              "options": [
+                "No repositório",
+                "No schema do Zod",
+                "No serviço",
+                "Na rota"
+              ],
+              "answer": 2,
+              "explanation": "Regra de negócio fora das rotas pode ser testada sem HTTP."
+            },
+            {
+              "id": "u6-l1-q3",
+              "type": "multiple_choice",
+              "prompt": "O que é injeção de dependência simples?",
+              "options": [
+                "Um framework obrigatório",
+                "A função recebe suas dependências por parâmetro, como `criarServico({ repo })`",
+                "Injetar SQL",
+                "Importar tudo como global"
+              ],
+              "answer": 1,
+              "explanation": "Nos testes, você passa um repositório falso."
+            },
+            {
+              "id": "u6-l1-q4",
+              "type": "multiple_choice",
+              "prompt": "O que é um ADR?",
+              "options": [
+                "Um diagrama de rede",
+                "Um tipo de banco",
+                "Um teste automatizado",
+                "Um registro curto de uma decisão de arquitetura: contexto, decisão e consequências"
+              ],
+              "answer": 3,
+              "explanation": "Ex.: \"Usamos BullMQ em vez de cron no banco porque...\"."
+            },
+            {
+              "id": "u6-l1-q5",
+              "type": "true_false",
+              "prompt": "Uma rota de health check informa se a aplicação e suas dependências (banco, Redis) estão ok.",
+              "answer": true,
+              "explanation": "Plataformas de deploy usam isso para saber se reiniciam o container."
+            }
+          ]
+        },
+        {
+          "id": "u6-l2",
+          "title": "Feature com LLM",
+          "concepts": [
+            "embeddings e pgvector",
+            "tool calling",
+            "custo, timeout e fallback",
+            "testes com mock e avaliação"
+          ],
+          "xp": 10,
+          "questions": [
+            {
+              "id": "u6-l2-q1",
+              "type": "multiple_choice",
+              "prompt": "O que são embeddings?",
+              "options": [
+                "Tokens de autenticação",
+                "Arquivos embutidos no HTML",
+                "Índices B-tree",
+                "Vetores de números que representam o significado de um texto"
+              ],
+              "answer": 3,
+              "explanation": "Textos com sentido parecido ficam com vetores próximos, o que permite busca semântica."
+            },
+            {
+              "id": "u6-l2-q2",
+              "type": "multiple_choice",
+              "prompt": "Para que serve o pgvector?",
+              "options": [
+                "Guardar vetores no PostgreSQL e buscar por similaridade",
+                "Criptografar colunas",
+                "Versionar migrations",
+                "Criar gráficos"
+              ],
+              "answer": 0,
+              "explanation": "Dispensa um banco vetorial separado para começar."
+            },
+            {
+              "id": "u6-l2-q3",
+              "type": "multiple_choice",
+              "prompt": "O que é tool calling?",
+              "options": [
+                "Chamar a API pelo terminal",
+                "O modelo pede para chamar uma função definida pela sua aplicação; você executa e devolve o resultado",
+                "O modelo executa código no seu servidor sozinho",
+                "Um plugin do Fastify"
+              ],
+              "answer": 1,
+              "explanation": "Ex.: a ferramenta `buscarPedidos(clienteId)` deixa o assistente responder com dados reais."
+            },
+            {
+              "id": "u6-l2-q4",
+              "type": "true_false",
+              "prompt": "Mandar todos os dados do cliente no prompt, por via das dúvidas, é uma boa prática.",
+              "answer": false,
+              "explanation": "Envie só o necessário: custa menos e protege dados sensíveis."
+            },
+            {
+              "id": "u6-l2-q5",
+              "type": "multiple_choice",
+              "prompt": "Quais cuidados uma feature com LLM precisa?",
+              "options": [
+                "Nenhum, a API nunca falha",
+                "Só cache",
+                "Só retry infinito",
+                "Limite de custo e tokens, timeout, fallback e log de prompts e respostas"
+              ],
+              "answer": 3,
+              "explanation": "É uma API externa, lenta e paga: trate como qualquer integração, com mais atenção a custo."
+            },
+            {
+              "id": "u6-l2-q6",
+              "type": "multiple_choice",
+              "prompt": "Como testar a feature de LLM no CI?",
+              "options": [
+                "Chamar a API real em todo teste",
+                "Mock da API nos testes automáticos + um conjunto pequeno de casos de avaliação",
+                "Não testar",
+                "Testar só manualmente em produção"
+              ],
+              "answer": 1,
+              "explanation": "O mock deixa o teste rápido e determinístico; a avaliação mede a qualidade das respostas."
+            }
+          ]
+        },
+        {
+          "id": "u6-l3",
+          "title": "Entrega e observabilidade",
+          "concepts": [
+            "deploy",
+            "OpenAPI com @fastify/swagger",
+            "logs, métricas e alertas",
+            "CI/CD"
+          ],
+          "xp": 10,
+          "questions": [
+            {
+              "id": "u6-l3-q1",
+              "type": "multiple_choice",
+              "prompt": "O que é OpenAPI?",
+              "options": [
+                "Uma API pública gratuita",
+                "Uma especificação padrão que descreve os endpoints da API",
+                "Uma licença open source",
+                "Um framework Node"
+              ],
+              "answer": 1,
+              "explanation": "Com `@fastify/swagger`, ela é gerada a partir dos schemas das rotas."
+            },
+            {
+              "id": "u6-l3-q2",
+              "type": "fill_blank",
+              "prompt": "A documentação interativa da API fica disponível na rota `/___`.",
+              "options": [
+                "docs",
+                "swagger.json",
+                "api",
+                "help"
+              ],
+              "answer": "docs",
+              "accept": [
+                "docs"
+              ],
+              "explanation": "Quem avalia seu portfólio testa a API direto pelo navegador."
+            },
+            {
+              "id": "u6-l3-q3",
+              "type": "true_false",
+              "prompt": "HTTPS é opcional para uma API em produção.",
+              "answer": false,
+              "explanation": "Sem HTTPS, tokens e senhas trafegam em texto puro. Railway e Render já entregam HTTPS."
+            },
+            {
+              "id": "u6-l3-q4",
+              "type": "multiple_choice",
+              "prompt": "O que é deploy automatizado a partir da branch principal?",
+              "options": [
+                "Rodar a aplicação no seu PC",
+                "Deploy só manual",
+                "Cada merge na main com CI verde publica a nova versão sozinho",
+                "Copiar arquivos via FTP"
+              ],
+              "answer": 2,
+              "explanation": "Isso é o CD (entrega contínua) depois do CI."
+            },
+            {
+              "id": "u6-l3-q5",
+              "type": "multiple_choice",
+              "prompt": "Qual conjunto compõe uma observabilidade básica?",
+              "options": [
+                "Logs centralizados, métricas e alertas de erro",
+                "Só o README",
+                "Só console.log",
+                "Só testes"
+              ],
+              "answer": 0,
+              "explanation": "Ex.: Sentry avisa quando um erro novo aparece em produção."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
