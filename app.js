@@ -27,6 +27,8 @@
 
   // ---------- Ícones ----------
   const I = {
+    soundOn: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 9.5v5h3.5L11 19V5L6.5 9.5z"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M15 9.2a4 4 0 0 1 0 5.6M17.8 6.5a8 8 0 0 1 0 11"/></svg>',
+    soundOff: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 9.5v5h3.5L11 19V5L6.5 9.5z"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M15.5 9.5l5 5m0-5l-5 5"/></svg>',
     flame: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.6 2.2c.5 3 4.9 5.6 4.9 11a5.5 5.5 0 0 1-11 0c0-2.3 1.1-4 2.4-5.2.1 1.9 1 3.1 2.1 3.3-.5-3.5.1-6.6 1.6-9.1z"/><path fill="#fff" fill-opacity=".55" d="M12 21a2.6 2.6 0 0 1-2.6-2.6c0-1.6 1.4-2.6 2.2-4.4.9 1.7 3 2.6 3 4.4A2.6 2.6 0 0 1 12 21z"/></svg>',
     bolt: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M13.5 2 4 13.6h6.6L9.5 22 19 10.3h-6.6z"/></svg>',
     heart: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 21.3l-1.4-1.3C5.4 15.4 2 12.3 2 8.5 2 5.4 4.4 3 7.5 3c1.7 0 3.4.8 4.5 2.1C13.1 3.8 14.8 3 16.5 3 19.6 3 22 5.4 22 8.5c0 3.8-3.4 6.9-8.6 11.5z"/></svg>',
@@ -231,6 +233,14 @@
   const currentIndex = () => { const i = flat.findIndex((l) => !isDone(l.id)); return i === -1 ? flat.length : i; };
   const isUnlocked = (i) => i <= currentIndex();
 
+  // ---------- Sons ----------
+  const Snd = window.DuoSound || { play() {}, enabled: false, toggle() { return false; } };
+  const sfx = (name, delay) => Snd.play(name, delay);
+  function soundBtnHtml(cls = 'icon-btn') {
+    const on = Snd.enabled;
+    return `<button class="${cls} sound-btn ${on ? '' : 'muted'}" data-action="sound" aria-pressed="${on}" aria-label="${on ? 'Desligar sons' : 'Ligar sons'}" title="${on ? 'Sons ligados' : 'Sons desligados'}">${on ? I.soundOn : I.soundOff}${cls === 'icon-btn' ? '' : `<span>${on ? 'Sons ligados' : 'Sons desligados'}</span>`}</button>`;
+  }
+
   // ---------- Pedaços de UI ----------
   function statsHtml() {
     syncLives();
@@ -408,6 +418,7 @@
       <div class="unit-list">${units}</div>
       <h2 class="section-title">Aplicativo</h2>
       <div class="danger-zone">
+        ${soundBtnHtml('btn ghost')}
         ${deferredInstall ? `<button class="btn" data-action="install">${I.download} Instalar app</button>` : ''}
         ${!deferredInstall && !standalone ? `<p style="margin:0;color:var(--muted);flex-basis:100%">${ios ? 'No iPhone: toque em Compartilhar e depois em “Adicionar à Tela de Início”.' : 'Para instalar, use “Instalar app” ou “Adicionar à tela inicial” no menu do navegador.'}</p>` : ''}
         <button class="btn ghost" data-action="reset">Apagar progresso</button>
@@ -554,6 +565,7 @@
       <div class="lesson-top">
         <button class="icon-btn" data-action="quit" aria-label="Sair da lição">${I.x}</button>
         <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="${s.total}" aria-valuenow="${s.solved}"><i style="width:${pct}%"></i></div>
+        ${soundBtnHtml()}
         ${lives}
       </div>
       <div class="q">
@@ -574,6 +586,7 @@
     if (q.type === 'multiple_choice') s.answer = Number(v);
     else if (q.type === 'true_false') s.answer = v === true || v === 'true';
     else s.answer = s.answer === v ? null : v;
+    sfx('tap');
     renderLesson();
   }
   function check() {
@@ -590,6 +603,7 @@
     s.correct = ok;
     state.stats.answered++;
     if (!p.retry) grade(q.id, ok);
+    sfx(ok ? 'correct' : 'wrong');
     if (ok) { s.solved++; state.stats.correct++; if (!p.retry) s.firstTry++; }
     else {
       s.mistakes++;
@@ -627,6 +641,9 @@
     const left = s.review ? dueIds().length : 0;
     const nextRev = s.review && !left ? nextReviewDay() : null;
     const reviewNote = s.review ? `<p>${left ? `Ainda ${left === 1 ? 'falta 1 pergunta' : `faltam ${left} perguntas`} para revisar hoje.` : nextRev ? `Revisão em dia. A próxima é ${fmtDay(nextRev)}.` : ''}</p>` : '';
+    sfx(perfect ? 'perfect' : 'complete');
+    if (newStreakDay) sfx('streak', 1.25);
+    else if (goalJustHit) sfx('goal', 1.25);
     view = 'result';
     $app.innerHTML = `<div class="result">
       <div class="result-mark">${perfect ? I.star : I.check}</div>
@@ -644,6 +661,7 @@
     document.getElementById('continue-btn')?.focus({ preventScroll: true });
   }
   function renderOutOfLives() {
+    sfx('fail');
     view = 'result';
     const l = session.l;
     session = null;
@@ -833,6 +851,11 @@
       case 'clear-blank': if (session) { session.answer = null; renderLesson(); } break;
       case 'toggle-typing': if (session) { session.cur.typing = !session.cur.typing; session.answer = null; renderLesson(); } break;
       case 'check': check(); break;
+      case 'sound': {
+        Snd.toggle();
+        document.querySelectorAll('.sound-btn').forEach((b) => { b.outerHTML = soundBtnHtml(b.classList.contains('icon-btn') ? 'icon-btn' : 'btn ghost'); });
+        break;
+      }
       case 'continue': nextQuestion(); break;
       case 'quit':
         openModal(`<h2>${session && session.review ? 'Sair da revisão?' : 'Sair da lição?'}</h2><p>${session && session.review ? 'As respostas que você já deu ficam salvas na sua memória. O resto continua para revisar.' : session && session.practice ? 'O progresso desta prática será perdido.' : 'O progresso desta lição será perdido. As vidas que você perdeu não voltam.'}</p>
