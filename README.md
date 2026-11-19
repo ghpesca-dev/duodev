@@ -15,6 +15,7 @@ Para testar no celular na mesma rede, use o IP do computador (a instalação com
 - `index.html`, `styles.css`, `app.js`: o app.
 - `config.js`: URL e chave pública do Supabase. Em branco, o app funciona só local, sem login.
 - `sync.js` + `vendor/supabase.js` (supabase-js 2.45.4, MIT): login e sincronização.
+- `sounds.js`: efeitos sonoros sintetizados com Web Audio (sem arquivos de áudio). Ver “Sons” abaixo.
 - `curso.json`: cópia do curso. Após editar `conteudo/gerar_curso.py`, rode `python3 conteudo/gerar_curso.py curso.json` (na raiz do repositório).
 - `manifest.webmanifest`, `sw.js`, `icons/`: PWA. Ao mudar arquivos, aumente `CACHE` em `sw.js`.
 
@@ -38,3 +39,8 @@ Para testar no celular na mesma rede, use o IP do computador (a instalação com
 - Mescla sem perder progresso: lições concluídas (união), XP por dia (maior valor), XP total (maior entre os dois lados e a soma dos dias), cartões de revisão (o respondido mais recentemente), ofensiva (a de data mais recente), vidas (do aparelho que salvou por último).
 - No primeiro login, o progresso que já estava no aparelho vai para a conta. Progresso local de outra conta não é misturado. Sair zera o aparelho (o progresso fica na conta). "Apagar progresso" com login zera também a nuvem.
 - Tabela e política de segurança: `supabase/schema.sql`. A chave do `config.js` é a anon/publishable, pública por natureza; quem protege os dados é a RLS.
+
+## Sons
+- Gerados na hora pelo `sounds.js` (Web Audio), originais: toque ao escolher, acerto, erro, lição concluída, lição perfeita, novo dia de ofensiva, meta do dia batida e vidas esgotadas.
+- Liga/desliga no ícone de alto-falante dentro da lição ou em Progresso > Aplicativo. A preferência fica no aparelho (chave `duodev:sound`), não vai para a nuvem.
+- iPhone: o Safari só libera áudio depois de um toque; o primeiro toque na página destrava. Com a chave lateral no silencioso, o iPhone não toca efeitos de sites/PWAs.

@@ -518,3 +518,10 @@ code { font-variant-ligatures: none; }
 .or::before, .or::after { content: ""; flex: 1; height: 2px; background: var(--line); }
 .g-logo { width: 20px; height: 20px; }
 .btn.ghost:has(.g-logo) { --t: var(--fg); display: inline-flex; align-items: center; justify-content: center; gap: 10px; }
+
+/* Botão de som */
+.lesson-top .sound-btn { margin-right: -8px; }
+.icon-btn.sound-btn svg { width: 24px; height: 24px; }
+.icon-btn.sound-btn.muted { opacity: .7; }
+.btn.sound-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.btn.sound-btn svg { width: 20px; height: 20px; }
