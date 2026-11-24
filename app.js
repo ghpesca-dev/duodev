@@ -42,6 +42,8 @@
     clock: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.2"/><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M12 7v5l3 2"/></svg>',
     repeat: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M4 12a8 8 0 0 1 13.7-5.6M20 12a8 8 0 0 1-13.7 5.6M18 3v4h-4M6 21v-4h4"/></svg>',
     list: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.4" fill="currentColor"/><circle cx="4.5" cy="12" r="1.4" fill="currentColor"/><circle cx="4.5" cy="18" r="1.4" fill="currentColor"/></svg>',
+    layers: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2.8 22 8l-10 5.2L2 8z"/><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" d="m3.5 12.2 8.5 4.4 8.5-4.4M3.5 16.2l8.5 4.4 8.5-4.4"/></svg>',
+    bug: '<svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="14" rx="5.5" ry="6.5" fill="currentColor"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M9 6.5 7.5 4M15 6.5 16.5 4M6.5 12H3M21 12h-3.5M6.8 16.5l-3 2M17.2 16.5l3 2"/></svg>',
     download: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M12 4v11m-4.5-4.5L12 15l4.5-4.5M5 20h14"/></svg>',
   };
 
@@ -221,7 +223,9 @@
 
   // ---------- Curso ----------
   let course = null;
-  let flat = []; // lições em ordem, com unidade
+  let flat = []; // lições básicas em ordem, com unidade
+  let deepFlat = []; // lições do nível Aprofundar (fora da trilha linear)
+  let byId = {}; // id da lição -> lição
   let qIndex = {}; // id da pergunta -> { q, lesson }
   let state = loadState();
   let view = 'path';
@@ -232,6 +236,9 @@
   const isDone = (id) => !!(state.lessons[id] && state.lessons[id].done);
   const currentIndex = () => { const i = flat.findIndex((l) => !isDone(l.id)); return i === -1 ? flat.length : i; };
   const isUnlocked = (i) => i <= currentIndex();
+  // Aprofundar: liberado quando todas as lições básicas da unidade estão concluídas.
+  const unitBasicsDone = (ui) => course.units[ui].lessons.every((l) => isDone(l.id));
+  const lessonUnlocked = (l) => (l.deep ? unitBasicsDone(l.unitIndex) : isUnlocked(l.index));
 
   // ---------- Sons ----------
   const Snd = window.DuoSound || { play() {}, enabled: false, toggle() { return false; } };
@@ -301,7 +308,7 @@
         ${accountHtml('side')}
         <section class="panel">${goalHtml()}</section>
         <section class="panel"><h3>Vidas</h3>${livesPanelHtml()}</section>
-        <section class="panel"><h3>${esc(course.title)}</h3><p>${flat.filter((l) => isDone(l.id)).length} de ${flat.length} lições concluídas em ${course.units.length} unidades.</p></section>
+        <section class="panel"><h3>${esc(course.title)}</h3><p>${flat.filter((l) => isDone(l.id)).length} de ${flat.length} lições concluídas em ${course.units.length} unidades.${deepFlat.length ? ` Aprofundar: ${deepFlat.filter((l) => isDone(l.id)).length} de ${deepFlat.length}.` : ''}</p></section>
       </aside>
     </div>
     <nav class="tabbar" aria-label="Navegação">${navHtml()}</nav>`;
@@ -323,7 +330,7 @@
         const due = st === 'done' ? lessonDue(l) : 0;
         return `<div class="node-wrap ${st}" style="transform:translateX(calc(${k} * min(78px, 17vw)))">
           ${st === 'current' ? `<div class="start-tip">${i === 0 && !state.xp ? 'Começar' : 'Próxima'}</div>` : ''}
-          <button class="node ${st}" data-action="lesson-info" data-i="${i}" aria-label="${esc(l.title)}${st === 'locked' ? ' (bloqueada)' : st === 'done' ? ' (concluída)' : ''}">${icon}
+          <button class="node ${st}" data-action="lesson-info" data-id="${l.id}" aria-label="${esc(l.title)}${st === 'locked' ? ' (bloqueada)' : st === 'done' ? ' (concluída)' : ''}">${icon}
             ${perfect ? `<span class="badge-perfect" title="Sem erros">${I.star}</span>` : ''}
             ${due ? `<span class="badge-due" title="${due} para revisar">${due}</span>` : ''}</button>
           <div class="node-label">${esc(l.title)}</div>
@@ -337,6 +344,7 @@
           <span class="unit-count">${done}/${u.lessons.length}</span>
         </header>
         ${nodes}
+        ${deepHtml(ui)}
       </section>`;
     }).join('');
     const allDone = cur >= flat.length;
@@ -353,21 +361,48 @@
     }
   }
 
-  function lessonInfo(i) {
-    const l = flat[i];
+  const DEEP_KINDS = [['scenario', 'Cenários'], ['find_bug', 'Encontre o bug'], ['order', 'Ordenar passos'], ['tradeoff', 'Trade-offs']];
+  function deepHtml(ui) {
+    const u = course.units[ui];
+    if (!u.deep || !u.deep.length) return '';
+    const open = unitBasicsDone(ui);
+    const doneN = u.deep.filter((l) => isDone(l.id)).length;
+    const rows = u.deep.map((l) => {
+      const st = !open ? 'locked' : isDone(l.id) ? 'done' : 'open';
+      const due = st === 'done' ? lessonDue(l) : 0;
+      const perfect = st === 'done' && state.lessons[l.id].perfect;
+      return `<button class="deep-row ${st}" data-action="lesson-info" data-id="${l.id}" aria-label="${esc(l.title)}${st === 'locked' ? ' (bloqueada)' : st === 'done' ? ' (concluída)' : ''}">
+        <span class="deep-ic">${st === 'locked' ? I.lock : st === 'done' ? I.check : I.layers}</span>
+        <span class="deep-txt"><strong>${esc(l.title)}</strong><small>${l.questions.length} desafios${perfect ? ' · sem erros' : ''}${due ? ` · <b>${due} para revisar</b>` : ''}</small></span>
+        <span class="deep-go">${st === 'locked' ? '' : st === 'done' ? 'Praticar' : 'Começar'}</span>
+      </button>`;
+    }).join('');
+    return `<div class="deep ${open ? 'open' : 'locked'}">
+      <header class="deep-head"><span class="deep-badge">${I.layers}Aprofundar</span><span class="deep-count">${doneN}/${u.deep.length}</span></header>
+      <p class="deep-sub">${open ? 'Aplique o que aprendeu: ' : 'Conclua as lições desta unidade para liberar: '}${DEEP_KINDS.map((k) => k[1].toLowerCase()).join(', ').replace(/, ([^,]*)$/, ' e $1')}.</p>
+      ${rows}
+    </div>`;
+  }
+
+  function lessonInfo(id) {
+    const l = byId[id];
+    if (!l) return;
     const done = isDone(l.id);
-    const unlocked = isUnlocked(i);
+    const unlocked = lessonUnlocked(l);
     syncLives();
     const noLives = !done && state.lives.n <= 0;
     let action;
-    if (!unlocked) action = `<p>Conclua <strong>${esc(flat[currentIndex()].title)}</strong> para liberar esta lição.</p><div class="actions"><button class="btn ghost block" data-action="close-modal">Entendi</button></div>`;
+    if (!unlocked && l.deep) action = `<p>Conclua as ${course.units[l.unitIndex].lessons.length} lições de <strong>${esc(l.unitTitle)}</strong> para liberar o Aprofundar desta unidade. Faltam ${course.units[l.unitIndex].lessons.filter((x) => !isDone(x.id)).length}.</p><div class="actions"><button class="btn ghost block" data-action="close-modal">Entendi</button></div>`;
+    else if (!unlocked) action = `<p>Conclua <strong>${esc(flat[currentIndex()].title)}</strong> para liberar esta lição.</p><div class="actions"><button class="btn ghost block" data-action="close-modal">Entendi</button></div>`;
     else if (noLives) action = `<p>Você está sem vidas. A próxima chega em ${fmtWait(nextLifeIn())}${flat.some((x) => isDone(x.id)) ? ', ou refaça uma lição concluída para ganhar 1 vida agora' : ''}.</p><div class="actions"><button class="btn ghost block" data-action="close-modal">Voltar</button></div>`;
-    else action = `<div class="actions"><button class="btn block" data-action="start" data-i="${i}">${done ? `${I.repeat} Praticar +${PRACTICE_XP} XP` : `Começar +${l.xp} XP`}</button>
+    else action = `<div class="actions"><button class="btn block" data-action="start" data-id="${l.id}">${done ? `${I.repeat} Praticar +${PRACTICE_XP} XP` : `Começar +${l.xp} XP`}</button>
       <button class="link-btn" data-action="close-modal">Agora não</button></div>`;
-    openModal(`<div class="unit-eyebrow" style="color:${l.color}">Unidade ${l.unitIndex + 1} · ${esc(l.unitTitle)}</div>
+    const kinds = l.deep ? DEEP_KINDS.map(([t, label]) => [label, l.questions.filter((q) => q.type === t).length]).filter((k) => k[1]) : [];
+    openModal(`<div class="unit-eyebrow" style="color:${l.color}">Unidade ${l.unitIndex + 1} · ${esc(l.unitTitle)}${l.deep ? ' · Aprofundar' : ''}</div>
       <h2>${esc(l.title)}</h2>
+      ${l.deep ? `<div class="chips">${kinds.map(([label, n]) => `<span class="chip deep-chip">${n}× ${esc(label)}</span>`).join('')}</div>` : ''}
       <div class="chips">${l.concepts.map((c) => `<span class="chip">${esc(c)}</span>`).join('')}</div>
-      <div class="meta-row"><span>${I.list}${l.questions.length} perguntas</span><span>${I.clock}${Math.max(2, Math.round(l.questions.length * 0.4))} min</span>${done ? `<span>${I.check}Concluída</span>` : ''}</div>
+      <div class="meta-row"><span>${I.list}${l.questions.length} ${l.deep ? 'desafios' : 'perguntas'}</span><span>${I.clock}${Math.max(2, Math.round(l.questions.length * (l.deep ? 0.8 : 0.4)))} min</span>${done ? `<span>${I.check}Concluída</span>` : ''}</div>
       ${memoryLine(l)}
       ${done && unlocked ? '<p>Praticar não custa vidas e devolve 1 vida no final.</p>' : ''}
       ${action}`);
@@ -398,7 +433,9 @@
     const week = days.map((d, k) => `<div class="week-col ${vals[k] ? '' : 'zero'}"><em>${vals[k] || ''}</em><i style="height:${Math.max(4, (vals[k] / max) * 90)}px"></i><span>${k === 6 ? 'hoje' : wd[d.getDay()]}</span></div>`).join('');
     const units = course.units.map((u, ui) => {
       const done = u.lessons.filter((l) => isDone(l.id)).length;
-      return `<div class="unit-row" style="--unit:${UNIT_COLORS[ui % UNIT_COLORS.length]}"><strong>${ui + 1}. ${esc(u.title)}</strong><small>${done}/${u.lessons.length}</small><div class="bar"><i style="width:${(done / u.lessons.length) * 100}%"></i></div></div>`;
+      const deep = u.deep || [];
+      const deepDone = deep.filter((l) => isDone(l.id)).length;
+      return `<div class="unit-row" style="--unit:${UNIT_COLORS[ui % UNIT_COLORS.length]}"><strong>${ui + 1}. ${esc(u.title)}</strong><small>${done}/${u.lessons.length}${deep.length ? ` · ${I.layers}${deepDone}/${deep.length}` : ''}</small><div class="bar"><i style="width:${(done / u.lessons.length) * 100}%"></i></div></div>`;
     }).join('');
     const standalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
     const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
@@ -442,7 +479,7 @@
       .sort((a, b) => state.srs[b].lapses - state.srs[a].lapses || state.srs[a].box - state.srs[b].box).slice(0, 5);
     const hardHtml = hard.length ? `<h2 class="section-title">Mais difíceis para você</h2><ol class="hard-list">${hard.map((id) => {
       const { q, lesson } = qIndex[id]; const c = state.srs[id];
-      return `<li><div class="hard-q">${md(q.prompt, '<b>___</b>')}</div><small>${esc(lesson.title)} · errou ${c.lapses}× · revisão ${fmtDay(c.due)}</small></li>`;
+      return `<li><div class="hard-q">${md(qSummary(q), '<b>___</b>')}</div><small>${esc(lesson.title)} · errou ${c.lapses}× · revisão ${fmtDay(c.due)}</small></li>`;
     }).join('')}</ol>` : '';
     return `<h2 class="section-title">Memória</h2>
       <div class="mem-card">${memBar(counts, total - ids.length)}<div class="mem-legend">${legend}</div>
@@ -453,26 +490,34 @@
   }
 
   // ---------- Lição ----------
+  const CHOICE = new Set(['multiple_choice', 'scenario', 'tradeoff']);
   function prep(q) {
     const p = { q };
-    if (q.type === 'multiple_choice') {
+    if (CHOICE.has(q.type)) {
       const order = shuffle(q.options.map((_, i) => i));
       p.opts = order.map((i) => q.options[i]);
       p.correct = order.indexOf(q.answer);
     } else if (q.type === 'fill_blank') {
       p.bank = shuffle(q.options);
       p.typing = false;
+    } else if (q.type === 'find_bug') {
+      p.lines = q.code.split('\n');
+      p.okLines = [q.answer, ...(q.accept || [])];
+    } else if (q.type === 'order') {
+      const idx = q.items.map((_, i) => i);
+      do { p.pool = shuffle(idx); } while (idx.length > 1 && p.pool.every((v, k) => v === k));
     }
     return p;
   }
-  function startLesson(i) {
+  function startLesson(id) {
     closeModal();
     syncLives();
-    const l = flat[i];
+    const l = byId[id];
+    if (!l || !lessonUnlocked(l)) return;
     const practice = isDone(l.id);
-    if (!practice && state.lives.n <= 0) { lessonInfo(i); return; }
+    if (!practice && state.lives.n <= 0) { lessonInfo(id); return; }
     session = {
-      i, l, practice, total: l.questions.length, solved: 0, mistakes: 0, start: Date.now(),
+      l, practice, total: l.questions.length, solved: 0, mistakes: 0, start: Date.now(),
       queue: l.questions.map(prep), cur: null, answer: null, checked: false, correct: false, firstTry: 0,
     };
     view = 'lesson';
@@ -485,7 +530,7 @@
     // Intercala lições para não ficar em bloco.
     const items = shuffle(ids).map((id) => { const p = prep(qIndex[id].q); p.from = qIndex[id].lesson.title; return p; });
     session = {
-      i: -1, l: { id: 'review', title: 'Revisão do dia', xp: REVIEW_XP }, practice: true, review: true,
+      l: { id: 'review', title: 'Revisão do dia', xp: REVIEW_XP }, practice: true, review: true,
       total: items.length, solved: 0, mistakes: 0, firstTry: 0, start: Date.now(),
       queue: items, cur: null, answer: null, checked: false, correct: false,
     };
@@ -496,18 +541,28 @@
     if (!session.practice && state.lives.n <= 0) { renderOutOfLives(); return; }
     if (!session.queue.length) { finishLesson(); return; }
     session.cur = session.queue.shift();
-    session.answer = null;
+    session.answer = session.cur.q.type === 'order' ? [] : null;
     session.checked = false;
     renderLesson();
     window.scrollTo(0, 0);
   }
-  const KIND = { multiple_choice: 'Escolha a resposta certa', true_false: 'Verdadeiro ou falso?', fill_blank: 'Complete a lacuna' };
+  const KIND = {
+    multiple_choice: 'Escolha a resposta certa', true_false: 'Verdadeiro ou falso?', fill_blank: 'Complete a lacuna',
+    scenario: 'Cenário prático', find_bug: 'Encontre o bug', order: 'Coloque na ordem', tradeoff: 'Trade-off',
+  };
+  const DEEP_TYPES = new Set(['scenario', 'find_bug', 'order', 'tradeoff']);
+  const isReady = () => {
+    const s = session, a = s.answer;
+    if (s.cur.q.type === 'order') return Array.isArray(a) && a.length === s.cur.q.items.length;
+    return a != null && a !== '';
+  };
+  const qSummary = (q) => q.context || q.prompt;
 
   function renderLesson() {
     const s = session, p = s.cur, q = p.q;
     const pct = (s.solved / s.total) * 100;
     let body = '';
-    if (q.type === 'multiple_choice') {
+    if (CHOICE.has(q.type)) {
       body = `<div class="options" role="listbox">${p.opts.map((o, k) => {
         let cls = '';
         if (s.checked) cls = k === p.correct ? 'right' : k === s.answer ? 'wrong' : '';
@@ -521,6 +576,26 @@
         else if (v === s.answer) cls = 'sel';
         return `<button class="opt ${cls}" data-action="answer" data-v="${v}" ${s.checked ? 'disabled' : ''}><span class="key">${k + 1}</span>${v ? 'Verdadeiro' : 'Falso'}</button>`;
       }).join('')}</div>`;
+    } else if (q.type === 'find_bug') {
+      body = `<div class="bug-code" role="listbox" aria-label="Linhas do código">${p.lines.map((ln, k) => {
+        if (!ln.trim()) return `<div class="code-line empty"><span class="ln">${k + 1}</span></div>`;
+        let cls = '';
+        if (s.checked) cls = p.okLines.includes(k) ? (k === q.answer || k === s.answer ? 'right' : '') : k === s.answer ? 'wrong' : '';
+        else if (k === s.answer) cls = 'sel';
+        return `<button class="code-line ${cls}" data-action="answer" data-v="${k}" ${s.checked ? 'disabled' : ''} role="option" aria-selected="${k === s.answer}" aria-label="Linha ${k + 1}"><span class="ln">${k + 1}</span><code>${highlight(ln)}</code></button>`;
+      }).join('')}</div>`;
+    } else if (q.type === 'order') {
+      const placed = s.answer || [];
+      const left = p.pool.filter((v) => !placed.includes(v));
+      const slots = q.items.map((_, k) => {
+        const v = placed[k];
+        if (v == null) return `<li class="slot empty"><span class="key">${k + 1}</span></li>`;
+        const cls = s.checked ? (v === k ? 'right' : 'wrong') : 'placed';
+        return `<li class="slot"><button class="step ${cls}" data-action="answer" data-v="${v}" ${s.checked ? 'disabled' : ''} title="Tirar da sequência"><span class="key">${k + 1}</span><span class="txt">${md(q.items[v])}</span></button></li>`;
+      }).join('');
+      body = `<ol class="order-slots" aria-label="Sua sequência">${slots}</ol>
+        ${left.length ? `<div class="order-pool" aria-label="Passos disponíveis">${left.map((v, k) => `<button class="step" data-action="answer" data-v="${v}"><span class="key">${k + 1}</span><span class="txt">${md(q.items[v])}</span></button>`).join('')}</div>` : ''}
+        ${placed.length && !s.checked ? '<button class="link-btn type-toggle" data-action="order-reset">Recomeçar a ordem</button>' : ''}`;
     }
     let prompt;
     if (q.type === 'fill_blank') {
@@ -544,16 +619,21 @@
 
     let foot;
     if (!s.checked) {
-      const ready = s.answer != null && s.answer !== '';
+      const ready = isReady();
       foot = `<div class="foot"><div class="foot-inner">
         <button class="btn" id="check-btn" data-action="check" ${ready ? '' : 'disabled'}>Verificar</button></div></div>`;
     } else {
       const ok = s.correct;
       let ans = '';
       if (!ok) {
-        const right = q.type === 'multiple_choice' ? md(p.opts[p.correct]) : q.type === 'true_false' ? (q.answer ? 'Verdadeiro' : 'Falso') : md('`' + q.answer + '`');
-        ans = `<div class="fb-answer">Resposta certa: ${right}</div>`;
+        if (q.type === 'order') ans = `<div class="fb-answer">Ordem certa:</div><ol class="fb-order">${q.items.map((it) => `<li>${md(it)}</li>`).join('')}</ol>`;
+        else if (q.type === 'find_bug') ans = `<div class="fb-answer">O bug está na linha ${q.answer + 1}.</div>`;
+        else {
+          const right = CHOICE.has(q.type) ? md(p.opts[p.correct]) : q.type === 'true_false' ? (q.answer ? 'Verdadeiro' : 'Falso') : md('`' + q.answer + '`');
+          ans = `<div class="fb-answer">Resposta certa: ${right}</div>`;
+        }
       }
+      if (q.fix) ans += `<div class="fb-fix"><span>Correção</span><pre class="code"><code>${highlight(q.fix)}</code></pre></div>`;
       foot = `<div class="foot ${ok ? 'ok' : 'bad'}"><div class="foot-inner" style="flex-wrap:wrap">
         <div class="feedback" role="status"><div class="fb-icon">${ok ? I.check : I.x}</div><div style="min-width:0">
           <div class="fb-title">${ok ? pick(['Mandou bem!', 'Isso aí!', 'Correto!', 'Na mosca!', 'Perfeito!']) : 'Não foi dessa vez'}</div>
@@ -569,9 +649,11 @@
         ${lives}
       </div>
       <div class="q">
-        <div class="q-kind">${KIND[q.type]} ${retry}</div>
-        <p class="q-prompt">${prompt}</p>
-        ${q.code ? `<pre class="code"><code>${highlight(q.code)}</code></pre>` : ''}
+        <div class="q-kind ${DEEP_TYPES.has(q.type) ? 'deep-kind' : ''}">${q.type === 'find_bug' ? I.bug : ''}${KIND[q.type]} ${retry}</div>
+        ${q.context ? `<div class="scenario"><span class="scenario-tag">Situação</span><p>${md(q.context)}</p></div>` : ''}
+        ${q.compare ? `<div class="versus"><span>${md(q.compare[0])}</span><b>vs</b><span>${md(q.compare[1])}</span></div>` : ''}
+        <p class="q-prompt ${q.context || q.compare ? 'small' : ''}">${prompt}</p>
+        ${q.code && q.type !== 'find_bug' ? `<pre class="code"><code>${highlight(q.code)}</code></pre>` : ''}
         ${body}
       </div>
       ${foot}
@@ -583,17 +665,22 @@
   function setAnswer(v) {
     const s = session; if (!s || s.checked) return;
     const q = s.cur.q;
-    if (q.type === 'multiple_choice') s.answer = Number(v);
-    else if (q.type === 'true_false') s.answer = v === true || v === 'true';
+    if (CHOICE.has(q.type) || q.type === 'find_bug') s.answer = Number(v);
+    else if (q.type === 'order') {
+      const n = Number(v), a = s.answer || [];
+      s.answer = a.includes(n) ? a.filter((x) => x !== n) : a.concat(n);
+    } else if (q.type === 'true_false') s.answer = v === true || v === 'true';
     else s.answer = s.answer === v ? null : v;
     sfx('tap');
     renderLesson();
   }
   function check() {
-    const s = session; if (!s || s.checked || s.answer == null || s.answer === '') return;
+    const s = session; if (!s || s.checked || !isReady()) return;
     const p = s.cur, q = p.q;
     let ok;
-    if (q.type === 'multiple_choice') ok = s.answer === p.correct;
+    if (CHOICE.has(q.type)) ok = s.answer === p.correct;
+    else if (q.type === 'find_bug') ok = p.okLines.includes(s.answer);
+    else if (q.type === 'order') ok = s.answer.every((v, k) => v === k);
     else if (q.type === 'true_false') ok = s.answer === q.answer;
     else {
       const accepted = [q.answer, ...(q.accept || [])].map(norm);
@@ -843,11 +930,12 @@
     e.preventDefault();
     switch (a) {
       case 'go': go(t.dataset.view); break;
-      case 'lesson-info': lessonInfo(Number(t.dataset.i)); break;
-      case 'start': startLesson(Number(t.dataset.i)); break;
+      case 'lesson-info': lessonInfo(t.dataset.id); break;
+      case 'start': startLesson(t.dataset.id); break;
       case 'review': startReview(); break;
       case 'close-modal': closeModal(); break;
       case 'answer': setAnswer(t.dataset.v); break;
+      case 'order-reset': if (session && !session.checked) { session.answer = []; renderLesson(); } break;
       case 'clear-blank': if (session) { session.answer = null; renderLesson(); } break;
       case 'toggle-typing': if (session) { session.cur.typing = !session.cur.typing; session.answer = null; renderLesson(); } break;
       case 'check': check(); break;
@@ -919,10 +1007,15 @@
       return;
     }
     if (session.checked || e.target.tagName === 'INPUT' || e.metaKey || e.ctrlKey || e.altKey) return;
+    const q = session.cur.q;
+    if (q.type === 'order' && e.key === 'Backspace' && session.answer.length) {
+      e.preventDefault(); setAnswer(session.answer[session.answer.length - 1]); return;
+    }
     const n = Number(e.key);
     if (!n) return;
-    const q = session.cur.q;
-    if (q.type === 'multiple_choice' && n <= session.cur.opts.length) setAnswer(n - 1);
+    if (CHOICE.has(q.type) && n <= session.cur.opts.length) setAnswer(n - 1);
+    else if (q.type === 'find_bug' && n <= session.cur.lines.length && session.cur.lines[n - 1].trim()) setAnswer(n - 1);
+    else if (q.type === 'order') { const left = session.cur.pool.filter((v) => !session.answer.includes(v)); if (n <= left.length) setAnswer(left[n - 1]); }
     else if (q.type === 'true_false' && n <= 2) setAnswer(n === 1);
     else if (q.type === 'fill_blank' && !session.cur.typing && n <= session.cur.bank.length) setAnswer(session.cur.bank[n - 1]);
   });
@@ -951,12 +1044,19 @@
     .then((data) => {
       course = data;
       flat = [];
+      deepFlat = [];
+      byId = {};
       qIndex = {};
-      course.units.forEach((u, ui) => u.lessons.forEach((l) => {
-        const lesson = Object.assign({}, l, { unitIndex: ui, unitTitle: u.title, color: UNIT_COLORS[ui % UNIT_COLORS.length] });
-        flat.push(lesson);
+      const add = (l, ui, list) => {
+        const lesson = Object.assign({}, l, { unitIndex: ui, unitTitle: course.units[ui].title, color: UNIT_COLORS[ui % UNIT_COLORS.length], index: list.length });
+        list.push(lesson);
+        byId[lesson.id] = lesson;
         l.questions.forEach((q) => { qIndex[q.id] = { q, lesson }; });
-      }));
+      };
+      course.units.forEach((u, ui) => {
+        u.lessons.forEach((l) => add(l, ui, flat));
+        (u.deep || []).forEach((l) => add(Object.assign({}, l, { deep: true }), ui, deepFlat));
+      });
       document.title = 'DuoDev';
       initSync();
       render();
