@@ -513,6 +513,189 @@
             }
           ]
         }
+      ],
+      "deep": [
+        {
+          "id": "u0-d1",
+          "title": "Assincronia na prática",
+          "concepts": [
+            "Promise.all",
+            "forEach com async",
+            "await e try/catch",
+            "event loop bloqueado"
+          ],
+          "xp": 15,
+          "deep": true,
+          "questions": [
+            {
+              "id": "u0-d1-q1",
+              "type": "scenario",
+              "prompt": "Qual mudança reduz o tempo sem mudar o resultado?",
+              "context": "Sua rota busca o usuário, os pedidos e as notificações dele: três chamadas independentes de ~200 ms, feitas com três `await` seguidos. A rota leva ~600 ms.",
+              "options": [
+                "Colocar um `setTimeout(..., 0)` antes de cada chamada",
+                "Disparar as três juntas com `await Promise.all([...])`",
+                "Trocar cada `await` por `.then()`",
+                "Mover as chamadas para um `worker_thread`"
+              ],
+              "answer": 1,
+              "explanation": "Como nenhuma depende da outra, `Promise.all` faz as três esperas ao mesmo tempo e a rota cai para ~200 ms (a mais lenta). `.then` encadeado continua sequencial, e worker threads servem para trabalho de CPU, não para esperar I/O."
+            },
+            {
+              "id": "u0-d1-q2",
+              "type": "find_bug",
+              "prompt": "Esta função deveria somar os pedidos de todos os usuários, mas sempre devolve 0. Toque na linha com o bug.",
+              "code": "async function totalPedidos(ids) {\n  let total = 0;\n  ids.forEach(async (id) => {\n    const pedidos = await buscarPedidos(id);\n    total += pedidos.length;\n  });\n  return total;\n}",
+              "answer": 2,
+              "fix": "const listas = await Promise.all(ids.map((id) => buscarPedidos(id)));\nreturn listas.reduce((t, p) => t + p.length, 0);",
+              "explanation": "`forEach` não espera callbacks `async`: dispara todos e segue, então o `return` roda antes de qualquer `await` terminar. Use `for...of` com `await` (um por vez) ou `Promise.all(ids.map(...))` (todos juntos)."
+            },
+            {
+              "id": "u0-d1-q3",
+              "type": "order",
+              "prompt": "Coloque na ordem o que acontece quando uma rota executa `await fetch(url)`.",
+              "items": [
+                "A função async roda de forma síncrona até chegar no `await`",
+                "A requisição de rede é entregue ao sistema operacional (via libuv)",
+                "O event loop fica livre e atende outras requisições",
+                "A resposta chega e a continuação da função entra na fila de microtasks",
+                "O código depois do `await` volta a executar"
+              ],
+              "explanation": "É por isso que `await` não bloqueia o servidor: enquanto a rede trabalha, a única thread do JavaScript atende outras requisições. Só depois que a Promise resolve a função continua, como uma microtask."
+            },
+            {
+              "id": "u0-d1-q4",
+              "type": "tradeoff",
+              "prompt": "Um painel carrega 5 widgets de serviços diferentes. Se um serviço falhar, os outros 4 precisam aparecer mesmo assim. O que usar?",
+              "compare": [
+                "Promise.all",
+                "Promise.allSettled"
+              ],
+              "options": [
+                "`Promise.allSettled`, porque cancela as outras promessas quando uma falha",
+                "`Promise.all`, porque rejeita assim que um falha e economiza tempo",
+                "`Promise.race`, porque devolve a primeira que responder",
+                "`Promise.allSettled`, porque devolve o resultado de cada promessa, com sucesso ou erro"
+              ],
+              "answer": 3,
+              "explanation": "`allSettled` espera todas e devolve `{ status, value }` ou `{ status, reason }` para cada uma, então dá para mostrar 4 widgets e um aviso no quinto. `Promise.all` rejeita na primeira falha e você perde os outros resultados. Nenhuma das duas cancela promessas."
+            },
+            {
+              "id": "u0-d1-q5",
+              "type": "find_bug",
+              "prompt": "O erro do banco não está sendo registrado nem convertido em `ErroDeBanco`. Qual linha causa isso?",
+              "code": "async function salvar(dados) {\n  try {\n    db.inserir(dados);\n  } catch (err) {\n    log.error(err);\n    throw new ErroDeBanco();\n  }\n}",
+              "answer": 2,
+              "fix": "await db.inserir(dados);",
+              "explanation": "Sem `await`, o `try` termina antes de a Promise rejeitar. A rejeição escapa do `catch` e vira um `unhandledRejection`, que no Node atual derruba o processo."
+            },
+            {
+              "id": "u0-d1-q6",
+              "type": "scenario",
+              "prompt": "Qual é a causa e a correção?",
+              "context": "Um usuário gera um relatório que faz um loop pesado de 3 s em JavaScript puro. Enquanto isso, todas as outras requisições ficam paradas, até o health check.",
+              "options": [
+                "O Node só atende uma requisição por vez; troque para Express",
+                "Falta `await` no loop; adicione `await` a cada iteração",
+                "O loop ocupa a única thread do event loop; mova o cálculo para um `worker_thread` ou para um job numa fila",
+                "O banco está lento; aumente o pool de conexões"
+              ],
+              "answer": 2,
+              "explanation": "Código síncrono pesado (CPU) bloqueia o event loop e nada mais roda até ele acabar. I/O não bloqueia, mas CPU sim. Worker threads rodam em outra thread; uma fila tira o trabalho do processo da API."
+            }
+          ]
+        },
+        {
+          "id": "u0-d2",
+          "title": "Node no dia a dia",
+          "concepts": [
+            "streams e memória",
+            "ESM e caminhos",
+            "variáveis de ambiente",
+            "semver e lockfile",
+            "desligamento gracioso"
+          ],
+          "xp": 15,
+          "deep": true,
+          "questions": [
+            {
+              "id": "u0-d2-q1",
+              "type": "scenario",
+              "prompt": "Qual é a abordagem certa?",
+              "context": "Você precisa importar um CSV de 4 GB linha a linha. Com `fs.readFile`, o processo morre por falta de memória.",
+              "options": [
+                "Aumentar o limite com `--max-old-space-size=8192`",
+                "Usar `fs.readFileSync`, que não carrega tudo na memória",
+                "Converter o arquivo para JSON antes de ler",
+                "Ler com `fs.createReadStream` e processar em pedaços com `pipeline`"
+              ],
+              "answer": 3,
+              "explanation": "Stream lê em pedaços (64 KB por padrão), então a memória fica constante, seja o arquivo de 4 MB ou 4 GB. `pipeline` ainda cuida do backpressure e propaga erros. Aumentar a memória só adia o problema."
+            },
+            {
+              "id": "u0-d2-q2",
+              "type": "find_bug",
+              "prompt": "Este módulo ESM falha ao iniciar com `ReferenceError`. Qual linha?",
+              "code": "import { readFile } from 'node:fs/promises';\nimport path from 'node:path';\n\nconst caminho = path.join(__dirname, 'config.json');\nconst config = JSON.parse(await readFile(caminho, 'utf8'));",
+              "answer": 3,
+              "fix": "const caminho = path.join(import.meta.dirname, 'config.json');",
+              "explanation": "`__dirname` e `__filename` só existem em CommonJS. Em ESM use `import.meta.dirname` (Node 20.11+) ou `fileURLToPath(new URL('.', import.meta.url))`."
+            },
+            {
+              "id": "u0-d2-q3",
+              "type": "order",
+              "prompt": "O orquestrador mandou `SIGTERM` para a sua API. Ordene um desligamento gracioso.",
+              "items": [
+                "Receber o sinal `SIGTERM`",
+                "Parar de aceitar conexões novas (`server.close()`)",
+                "Esperar as requisições em andamento terminarem",
+                "Fechar conexões com banco e Redis",
+                "Sair com `process.exit(0)`"
+              ],
+              "explanation": "Assim nenhum usuário recebe erro no meio de um deploy: quem já entrou termina, quem chega depois vai para a instância nova. Fechar o banco antes de as requisições acabarem quebraria justamente essas requisições."
+            },
+            {
+              "id": "u0-d2-q4",
+              "type": "tradeoff",
+              "prompt": "Qual comando usar no pipeline de CI?",
+              "compare": [
+                "npm install",
+                "npm ci"
+              ],
+              "options": [
+                "`npm ci`, porque ignora o lockfile e baixa as versões mais novas",
+                "`npm install`, porque é o único que respeita o package-lock.json",
+                "`npm ci`, porque instala exatamente o que está no lockfile e falha se ele não bater com o package.json",
+                "`npm install`, porque atualiza para a última versão compatível a cada build"
+              ],
+              "answer": 2,
+              "explanation": "`npm ci` apaga a `node_modules`, instala as versões exatas do lockfile e nunca altera o lockfile. O build fica reproduzível: o que passou no CI é o que vai para produção. `npm install` pode resolver versões diferentes."
+            },
+            {
+              "id": "u0-d2-q5",
+              "type": "find_bug",
+              "prompt": "Mesmo com `DEBUG=false` no ambiente, o log entra em modo debug. Qual linha?",
+              "code": "const porta = Number(process.env.PORT ?? 3000);\nconst debug = process.env.DEBUG ?? false;\n\nif (debug) {\n  logger.level = 'debug';\n}",
+              "answer": 1,
+              "fix": "const debug = process.env.DEBUG === 'true';",
+              "explanation": "Variáveis de ambiente são sempre strings. `'false'` é uma string não vazia, logo é truthy. Compare com o texto esperado, ou valide a config com Zod (`z.coerce.boolean()` também cai nessa armadilha; prefira `z.enum(['true', 'false'])`)."
+            },
+            {
+              "id": "u0-d2-q6",
+              "type": "scenario",
+              "prompt": "O que causou isso e o que evita?",
+              "context": "Seu package.json tem `\"lib-x\": \"^2.3.1\"`. A lib publicou a 2.9.0 com um bug, e o build de hoje quebrou sem ninguém mexer no código. O package-lock.json está no `.gitignore`.",
+              "options": [
+                "O `^` aceita a 3.0.0; basta trocar por `~`",
+                "O `^` aceita qualquer 2.x.x; commitar o package-lock.json e instalar com `npm ci` fixa as versões",
+                "O cache do npm corrompeu; apague a pasta `~/.npm`",
+                "O npm ignora a versão do package.json; use outro gerenciador"
+              ],
+              "answer": 1,
+              "explanation": "`^2.3.1` aceita de 2.3.1 até antes de 3.0.0. Sem lockfile versionado, cada instalação pega a versão mais nova da faixa. Com o lockfile no Git, você só muda de versão quando decide (ex.: num PR do Dependabot)."
+            }
+          ]
+        }
       ]
     },
     {
@@ -851,6 +1034,194 @@
               ],
               "answer": 0,
               "explanation": "Query string é o lugar padrão para parâmetros opcionais de listagem."
+            }
+          ]
+        }
+      ],
+      "deep": [
+        {
+          "id": "u1-d1",
+          "title": "Desenho de API",
+          "concepts": [
+            "idempotência",
+            "PUT vs PATCH",
+            "status codes certos",
+            "ações como recursos",
+            "ciclo de vida do Fastify"
+          ],
+          "xp": 15,
+          "deep": true,
+          "questions": [
+            {
+              "id": "u1-d1-q1",
+              "type": "scenario",
+              "prompt": "Qual é a solução mais robusta?",
+              "context": "O app fez `POST /pedidos`, a resposta demorou, a conexão caiu por timeout e o app repetiu a requisição. O cliente foi cobrado duas vezes.",
+              "options": [
+                "Proibir o app de repetir requisições",
+                "Aumentar o timeout do app para 60 s",
+                "Trocar o método para `GET`, que é idempotente",
+                "Aceitar um header `Idempotency-Key` e, se a chave já foi processada, devolver o mesmo resultado"
+              ],
+              "answer": 3,
+              "explanation": "Repetir é inevitável em rede ruim. Com uma chave gerada pelo cliente por operação, o servidor grava `chave → resultado` e, na repetição, devolve o mesmo pedido em vez de criar outro. É o que Stripe e outros gateways fazem."
+            },
+            {
+              "id": "u1-d1-q2",
+              "type": "tradeoff",
+              "prompt": "O front quer mudar só o e-mail do usuário, sem reenviar os outros 15 campos. Qual rota?",
+              "compare": [
+                "PUT",
+                "PATCH"
+              ],
+              "options": [
+                "`PATCH`, porque é sempre idempotente e PUT não",
+                "`PATCH /usuarios/:id` com `{ email }`, porque é uma atualização parcial",
+                "`POST /usuarios/:id/email`, porque navegadores não enviam PATCH",
+                "`PUT /usuarios/:id` com `{ email }`, porque PUT altera só os campos enviados"
+              ],
+              "answer": 1,
+              "explanation": "PUT substitui o recurso inteiro: mandar só `{ email }` significaria apagar o resto. PATCH aplica uma mudança parcial. Detalhe: PUT é idempotente por definição; PATCH pode ou não ser, depende da operação."
+            },
+            {
+              "id": "u1-d1-q3",
+              "type": "find_bug",
+              "prompt": "O front não consegue diferenciar sucesso de erro neste cadastro. Qual linha está errada?",
+              "code": "fastify.post('/usuarios', async (req, reply) => {\n  const existe = await repo.buscarPorEmail(req.body.email);\n  if (existe) {\n    return reply.code(200).send({ erro: 'E-mail já cadastrado' });\n  }\n  const usuario = await repo.criar(req.body);\n  return reply.code(201).send(usuario);\n});",
+              "answer": 3,
+              "fix": "return reply.code(409).send({ erro: 'E-mail já cadastrado' });",
+              "explanation": "Erro respondido com 200 engana clientes, caches e monitoramento (a taxa de erro some dos gráficos). Recurso que já existe é conflito: 409. Validação inválida seria 400 ou 422."
+            },
+            {
+              "id": "u1-d1-q4",
+              "type": "order",
+              "prompt": "Ordene as etapas de uma requisição no Fastify.",
+              "items": [
+                "Hook `onRequest` (ex.: gerar o id da requisição)",
+                "Leitura (parse) do corpo",
+                "Validação do schema de body, params e query",
+                "Hook `preHandler` (ex.: checar permissão)",
+                "Handler da rota",
+                "Serialização e envio da resposta"
+              ],
+              "explanation": "Saber a ordem diz onde cada coisa entra: no `onRequest` o corpo ainda não foi lido; no `preHandler` o body já foi validado, então é um bom lugar para autorização que depende dele. Depois do handler, a resposta é serializada pelo schema de resposta, se houver."
+            },
+            {
+              "id": "u1-d1-q5",
+              "type": "scenario",
+              "prompt": "Qual desenho de rota é o melhor?",
+              "context": "Você precisa expor a ação \"cancelar pedido\", que muda o status e dispara um reembolso. O pedido continua existindo para o histórico.",
+              "options": [
+                "`GET /pedidos/:id/cancelar`",
+                "`DELETE /pedidos/:id`",
+                "`PUT /cancelarPedido?id=123`",
+                "`POST /pedidos/:id/cancelamento`, criando um cancelamento"
+              ],
+              "answer": 3,
+              "explanation": "GET nunca deve ter efeito colateral (navegadores, crawlers e prefetch fazem GET sozinhos). DELETE diria que o pedido deixou de existir. Modelar a ação como um sub-recurso criado com POST mantém o REST e ainda dá onde guardar motivo e data."
+            },
+            {
+              "id": "u1-d1-q6",
+              "type": "find_bug",
+              "prompt": "Esta rota de exclusão quebra alguns clientes HTTP. Qual linha?",
+              "code": "fastify.delete('/posts/:id', async (req, reply) => {\n  await repo.remover(req.params.id);\n  return reply.code(204).send({ ok: true });\n});",
+              "answer": 2,
+              "fix": "return reply.code(204).send();",
+              "explanation": "204 No Content significa resposta sem corpo. Mandar um corpo junto viola o protocolo; o Fastify descarta, outros servidores e proxies se confundem. Ou use 204 sem corpo, ou 200 com corpo."
+            }
+          ]
+        },
+        {
+          "id": "u1-d2",
+          "title": "Robustez da API",
+          "concepts": [
+            "validar query string",
+            "error handler seguro",
+            "offset vs cursor",
+            "config na inicialização",
+            "erros de domínio"
+          ],
+          "xp": 15,
+          "deep": true,
+          "questions": [
+            {
+              "id": "u1-d2-q1",
+              "type": "find_bug",
+              "prompt": "Alguém chamou `GET /produtos?limite=1000000` e derrubou o banco. Qual linha deixou isso acontecer?",
+              "code": "fastify.get('/produtos', async (req) => {\n  const { pagina = 1, limite = 20 } = req.query;\n  const offset = (pagina - 1) * limite;\n  return repo.listar({ limite, offset });\n});",
+              "answer": 1,
+              "fix": "const { pagina, limite } = Paginacao.parse(req.query);",
+              "explanation": "Query string é entrada do usuário e chega como texto. Valide e limite: número inteiro, mínimo 1, máximo (ex.: 100). Com Zod: `z.coerce.number().int().min(1).max(100).default(20)`."
+            },
+            {
+              "id": "u1-d2-q2",
+              "type": "find_bug",
+              "prompt": "Este error handler cria um problema de segurança e outro de semântica. Qual linha?",
+              "code": "fastify.setErrorHandler((err, req, reply) => {\n  req.log.error(err);\n  reply.code(500).send({ erro: err.message, stack: err.stack });\n});",
+              "answer": 2,
+              "fix": "const status = err.statusCode ?? 500;\nreply.code(status).send({ erro: status < 500 ? err.message : 'Erro interno' });",
+              "explanation": "Devolver `stack` e mensagens internas expõe caminhos, versões e consultas para um atacante. E tratar tudo como 500 transforma erro de validação (400) e de permissão (403) em erro do servidor. Use o status do erro quando existir e uma mensagem genérica para erros inesperados."
+            },
+            {
+              "id": "u1-d2-q3",
+              "type": "tradeoff",
+              "prompt": "Um feed infinito tem milhões de posts e recebe posts novos o tempo todo. Como paginar?",
+              "compare": [
+                "Offset",
+                "Cursor"
+              ],
+              "options": [
+                "Cursor, porque permite pular direto para a página 37",
+                "Offset (`?pagina=500`), porque o banco pula direto para a página sem ler as anteriores",
+                "Offset, porque posts novos não alteram a contagem",
+                "Cursor (`?depois=<id>`), porque não repete nem pula itens quando entram posts novos e não fica lento em páginas fundas"
+              ],
+              "answer": 3,
+              "explanation": "`OFFSET 10000` obriga o banco a ler e descartar 10 mil linhas, e um post novo empurra tudo uma posição (você vê itens repetidos). Cursor usa `WHERE id < $1 ORDER BY id DESC LIMIT 20` com índice. A troca: com cursor não dá para pular para uma página específica."
+            },
+            {
+              "id": "u1-d2-q4",
+              "type": "scenario",
+              "prompt": "O que evita isso?",
+              "context": "Em produção, a API subiu sem a variável `DATABASE_URL` e só quebrou 20 minutos depois, na primeira consulta, no meio do horário de pico.",
+              "options": [
+                "Validar todas as variáveis na inicialização (ex.: com Zod) e encerrar o processo se faltar alguma",
+                "Envolver cada consulta em `try/catch`",
+                "Ler `process.env` só dentro das funções que usam",
+                "Usar `localhost` como valor padrão para `DATABASE_URL`"
+              ],
+              "answer": 0,
+              "explanation": "Falhar rápido (fail fast): se a config está errada, o processo nem sobe, o deploy falha e a versão anterior continua no ar. Um padrão como `localhost` esconde o erro em produção."
+            },
+            {
+              "id": "u1-d2-q5",
+              "type": "order",
+              "prompt": "Ordene o caminho de um erro de domínio até virar resposta HTTP.",
+              "items": [
+                "O serviço detecta falta de estoque e lança `new ErroDeDominio('SEM_ESTOQUE')`",
+                "A exceção sobe pelo handler da rota, que não tem `try/catch`",
+                "O error handler central reconhece que é um `ErroDeDominio`",
+                "Ele traduz o código para o status 422 e um corpo padronizado",
+                "O cliente recebe `{ erro: 'SEM_ESTOQUE', mensagem }`"
+              ],
+              "explanation": "O serviço não conhece HTTP: só lança um erro com significado de negócio. Um único lugar decide status e formato, então todas as rotas respondem erros do mesmo jeito e nenhuma precisa de `try/catch` repetido."
+            },
+            {
+              "id": "u1-d2-q6",
+              "type": "tradeoff",
+              "prompt": "Onde garantir que o e-mail é obrigatório e único?",
+              "compare": [
+                "Validar na API",
+                "Constraints no banco"
+              ],
+              "options": [
+                "Só no Zod, porque constraints no banco são redundantes",
+                "Em nenhum: o formulário do front já valida",
+                "Nos dois: Zod na entrada para dar um erro 400 claro, e `NOT NULL`/`UNIQUE` no banco como garantia final",
+                "Só no banco, porque o Zod não roda em produção"
+              ],
+              "answer": 2,
+              "explanation": "A validação na API dá mensagens boas e barra lixo cedo. A constraint protege contra o que a API não vê: outro serviço, um script, uma corrida entre duas requisições. A validação do front é só conforto: qualquer um chama a API direto."
             }
           ]
         }
@@ -1219,6 +1590,200 @@
             }
           ]
         }
+      ],
+      "deep": [
+        {
+          "id": "u2-d1",
+          "title": "Consultas e desempenho",
+          "concepts": [
+            "N+1",
+            "índice composto",
+            "WHERE vs HAVING",
+            "ordem lógica do SQL",
+            "LEFT JOIN e COUNT",
+            "índice de expressão"
+          ],
+          "xp": 15,
+          "deep": true,
+          "questions": [
+            {
+              "id": "u2-d1-q1",
+              "type": "find_bug",
+              "prompt": "Esta listagem de 20 posts faz 21 consultas ao banco. Qual linha causa isso?",
+              "code": "const posts = await db.query('SELECT * FROM posts LIMIT 20');\nfor (const post of posts) {\n  post.autor = await db.query(\n    'SELECT * FROM usuarios WHERE id = $1', [post.autor_id]);\n}\nreturn posts;",
+              "answer": 2,
+              "accept": [
+                3
+              ],
+              "fix": "SELECT p.*, u.nome AS autor_nome\nFROM posts p JOIN usuarios u ON u.id = p.autor_id\nLIMIT 20",
+              "explanation": "É o problema N+1: 1 consulta para a lista e mais 1 por item. Com 20 itens são 21 idas ao banco; com 1.000, 1.001. Resolva com um JOIN ou com uma segunda consulta `WHERE id = ANY($1)` buscando todos os autores de uma vez."
+            },
+            {
+              "id": "u2-d1-q2",
+              "type": "scenario",
+              "prompt": "Qual é a melhor correção?",
+              "context": "Esta consulta ficou lenta com 5 milhões de pedidos. O `EXPLAIN` mostra `Seq Scan on pedidos`.",
+              "code": "SELECT * FROM pedidos\nWHERE cliente_id = $1\nORDER BY criado_em DESC\nLIMIT 10;",
+              "options": [
+                "Aumentar o `LIMIT` para o banco usar o cache",
+                "Trocar `SELECT *` por `SELECT id`, que elimina o Seq Scan",
+                "Criar um índice só em `criado_em`",
+                "Criar um índice composto em `(cliente_id, criado_em DESC)`"
+              ],
+              "answer": 3,
+              "explanation": "O índice composto atende o filtro e a ordenação juntos: o banco vai direto para os pedidos daquele cliente, já ordenados, e lê só 10 entradas. Um índice só em `criado_em` ainda varreria pedidos de todos os clientes."
+            },
+            {
+              "id": "u2-d1-q3",
+              "type": "find_bug",
+              "prompt": "O banco recusa esta consulta. Qual linha está errada?",
+              "code": "SELECT cliente_id, COUNT(*) AS total\nFROM pedidos\nWHERE COUNT(*) > 5\nGROUP BY cliente_id;",
+              "answer": 2,
+              "fix": "GROUP BY cliente_id\nHAVING COUNT(*) > 5;",
+              "explanation": "`WHERE` filtra linhas antes do agrupamento, quando `COUNT(*)` ainda não existe. Filtro sobre agregados vai no `HAVING`, depois do `GROUP BY`."
+            },
+            {
+              "id": "u2-d1-q4",
+              "type": "order",
+              "prompt": "Ordene as cláusulas na ordem lógica em que o banco as avalia.",
+              "items": [
+                "FROM e JOIN",
+                "WHERE",
+                "GROUP BY",
+                "HAVING",
+                "SELECT",
+                "ORDER BY e LIMIT"
+              ],
+              "explanation": "Essa ordem explica erros comuns: um apelido criado no `SELECT` não pode ser usado no `WHERE` (que roda antes), mas pode no `ORDER BY` (que roda depois). E agregados só existem a partir do `GROUP BY`."
+            },
+            {
+              "id": "u2-d1-q5",
+              "type": "tradeoff",
+              "prompt": "O relatório precisa listar TODOS os clientes com o total de pedidos, inclusive quem nunca comprou (com 0). Qual consulta?",
+              "compare": [
+                "INNER JOIN",
+                "LEFT JOIN"
+              ],
+              "code": "SELECT c.nome, COUNT(p.id) AS pedidos\nFROM clientes c\nLEFT JOIN pedidos p ON p.cliente_id = c.id\nGROUP BY c.id, c.nome;",
+              "options": [
+                "`INNER JOIN`, porque `LEFT JOIN` duplica os clientes",
+                "`LEFT JOIN` com `COUNT(*)`, porque conta 0 para quem não tem pedido",
+                "`INNER JOIN` com `COUNT(*)`, porque conta todos os clientes",
+                "`LEFT JOIN` com `COUNT(p.id)`, porque mantém clientes sem pedidos e conta só pedidos que existem"
+              ],
+              "answer": 3,
+              "explanation": "`INNER JOIN` descarta quem não tem pedido. Com `LEFT JOIN`, quem não comprou vem numa linha com as colunas de `p` nulas: `COUNT(*)` contaria essa linha (1), e `COUNT(p.id)` ignora nulos (0)."
+            },
+            {
+              "id": "u2-d1-q6",
+              "type": "scenario",
+              "prompt": "Como resolver?",
+              "context": "A busca `WHERE email = $1` usa o índice de `email`. Para ignorar maiúsculas, você trocou por `WHERE LOWER(email) = LOWER($1)` e ela virou `Seq Scan`.",
+              "options": [
+                "Rodar `VACUUM` na tabela",
+                "Criar um índice de expressão em `LOWER(email)`, ou guardar o e-mail já em minúsculas",
+                "Trocar `=` por `LIKE`",
+                "Usar `SELECT DISTINCT`"
+              ],
+              "answer": 1,
+              "explanation": "O índice guarda os valores de `email`, não de `LOWER(email)`. Aplicar uma função na coluna impede o uso do índice comum. `CREATE INDEX ON usuarios (LOWER(email))` indexa exatamente a expressão buscada."
+            }
+          ]
+        },
+        {
+          "id": "u2-d2",
+          "title": "Consistência na prática",
+          "concepts": [
+            "condição de corrida",
+            "transações",
+            "dinheiro sem float",
+            "migrations sem downtime",
+            "soft delete",
+            "UNIQUE contra cliques duplos"
+          ],
+          "xp": 15,
+          "deep": true,
+          "questions": [
+            {
+              "id": "u2-d2-q1",
+              "type": "find_bug",
+              "prompt": "Com duas compras simultâneas do último item, as duas passam e o estoque fica errado. Qual linha é o problema?",
+              "code": "async function comprar(produtoId) {\n  const { estoque } = await db.one(\n    'SELECT estoque FROM produtos WHERE id = $1', [produtoId]);\n  if (estoque < 1) throw new ErroSemEstoque();\n  await db.none(\n    'UPDATE produtos SET estoque = $1 WHERE id = $2', [estoque - 1, produtoId]);\n}",
+              "answer": 5,
+              "accept": [
+                5
+              ],
+              "fix": "const r = await db.result(\n  'UPDATE produtos SET estoque = estoque - 1 WHERE id = $1 AND estoque > 0', [produtoId]);\nif (r.rowCount === 0) throw new ErroSemEstoque();",
+              "explanation": "As duas requisições leem `estoque = 1`, as duas passam no `if` e as duas gravam 0: uma venda a mais (lost update). Faça a checagem e a escrita numa única instrução atômica e confira quantas linhas mudaram."
+            },
+            {
+              "id": "u2-d2-q2",
+              "type": "scenario",
+              "prompt": "Como evitar?",
+              "context": "Uma transferência debita a conta A e depois credita a conta B, com dois `UPDATE` separados. O servidor caiu entre os dois e o dinheiro sumiu.",
+              "options": [
+                "Creditar primeiro e debitar depois",
+                "Repetir o débito se o crédito falhar",
+                "Guardar os saldos no Redis",
+                "Envolver os dois `UPDATE` numa transação (`BEGIN` … `COMMIT`): ou os dois valem, ou nenhum"
+              ],
+              "answer": 3,
+              "explanation": "Atomicidade é o A do ACID. Se algo falha antes do `COMMIT`, o banco desfaz tudo (rollback). Inverter a ordem só troca o problema: em vez de sumir, o dinheiro apareceria do nada."
+            },
+            {
+              "id": "u2-d2-q3",
+              "type": "find_bug",
+              "prompt": "Esta tabela vai gerar centavos errados nos relatórios. Qual linha?",
+              "code": "CREATE TABLE pedidos (\n  id BIGSERIAL PRIMARY KEY,\n  cliente_id BIGINT NOT NULL REFERENCES clientes(id),\n  total FLOAT NOT NULL,\n  criado_em TIMESTAMPTZ NOT NULL DEFAULT now()\n);",
+              "answer": 3,
+              "fix": "total_centavos BIGINT NOT NULL,",
+              "explanation": "Ponto flutuante não representa 0,10 exatamente (`0.1 + 0.2 = 0.30000000000000004`), e os erros se acumulam em somas. Guarde dinheiro em centavos inteiros ou em `NUMERIC(12,2)`."
+            },
+            {
+              "id": "u2-d2-q4",
+              "type": "order",
+              "prompt": "Você precisa de uma nova coluna `NOT NULL` numa tabela grande, com o app no ar. Ordene os passos.",
+              "items": [
+                "Migration que adiciona a coluna aceitando nulo",
+                "Deploy do código que já preenche a coluna nas linhas novas",
+                "Script que preenche as linhas antigas, em lotes",
+                "Migration que adiciona a restrição `NOT NULL`"
+              ],
+              "explanation": "É o padrão expandir e contrair. Adicionar a coluna já `NOT NULL` quebraria o código antigo, que ainda não grava nela, e preencher milhões de linhas numa única transação trava a tabela. Cada passo é compatível com o anterior."
+            },
+            {
+              "id": "u2-d2-q5",
+              "type": "tradeoff",
+              "prompt": "Usuários podem \"excluir\" pedidos, mas o financeiro precisa do histórico para auditoria. O que fazer?",
+              "compare": [
+                "Soft delete",
+                "Hard delete"
+              ],
+              "options": [
+                "Hard delete (`DELETE`), porque o banco mantém um histórico automático",
+                "Hard delete com `ON DELETE CASCADE`, que gera a auditoria",
+                "Soft delete, porque deixa as consultas mais simples e rápidas",
+                "Soft delete (coluna `deleted_at`), filtrando os excluídos nas consultas, porque preserva o histórico"
+              ],
+              "answer": 3,
+              "explanation": "Soft delete preserva os dados, mas tem custo: todo `SELECT` precisa de `WHERE deleted_at IS NULL`, e índices `UNIQUE` precisam ser parciais. E atenção à LGPD: dados pessoais às vezes precisam ser apagados ou anonimizados de verdade."
+            },
+            {
+              "id": "u2-d2-q6",
+              "type": "scenario",
+              "prompt": "Qual é a correção confiável?",
+              "context": "Dois cliques rápidos em \"Cadastrar\" criaram dois usuários com o mesmo e-mail, mesmo com o código fazendo um `SELECT` para checar antes do `INSERT`.",
+              "options": [
+                "Esperar 500 ms antes do `INSERT`",
+                "Criar uma constraint `UNIQUE` em `email` e tratar a violação (código 23505) como 409",
+                "Fazer o `SELECT` duas vezes",
+                "Só desabilitar o botão no front"
+              ],
+              "answer": 1,
+              "explanation": "Checar e depois inserir tem uma janela de corrida: as duas requisições checam antes de qualquer uma inserir. Só o banco consegue garantir unicidade de forma atômica. Desabilitar o botão ajuda a UX, mas não impede requisições diretas."
+            }
+          ]
+        }
       ]
     },
     {
@@ -1472,6 +2037,193 @@
               ],
               "answer": 1,
               "explanation": "O `.env` real fica no `.gitignore`."
+            }
+          ]
+        }
+      ],
+      "deep": [
+        {
+          "id": "u3-d1",
+          "title": "Autenticação na prática",
+          "concepts": [
+            "verificar hash",
+            "verify vs decode",
+            "token curto + refresh",
+            "rotação de refresh token",
+            "onde guardar tokens",
+            "enumeração de contas"
+          ],
+          "xp": 15,
+          "deep": true,
+          "questions": [
+            {
+              "id": "u3-d1-q1",
+              "type": "find_bug",
+              "prompt": "Nenhum usuário consegue fazer login, nem com a senha certa. Qual linha causa isso?",
+              "code": "async function login(email, senha) {\n  const user = await repo.buscarPorEmail(email);\n  if (!user) throw new ErroCredenciais();\n  const hash = await argon2.hash(senha);\n  if (hash !== user.senhaHash) throw new ErroCredenciais();\n  return gerarTokens(user);\n}",
+              "answer": 3,
+              "accept": [
+                4
+              ],
+              "fix": "if (!(await argon2.verify(user.senhaHash, senha))) throw new ErroCredenciais();",
+              "explanation": "Cada `hash` gera um salt aleatório novo, então o resultado nunca é igual ao guardado. Para conferir, use `argon2.verify`, que lê o salt e os parâmetros de dentro do hash salvo."
+            },
+            {
+              "id": "u3-d1-q2",
+              "type": "find_bug",
+              "prompt": "Qualquer pessoa consegue se passar por outro usuário nesta API. Qual linha?",
+              "code": "import jwt from 'jsonwebtoken';\n\nfunction autenticar(req) {\n  const token = req.headers.authorization?.replace('Bearer ', '');\n  const payload = jwt.decode(token);\n  if (!payload) throw new ErroNaoAutenticado();\n  return payload.sub;\n}",
+              "answer": 4,
+              "fix": "const payload = jwt.verify(token, process.env.JWT_SECRET);",
+              "explanation": "`decode` só lê o payload (que é base64, não criptografado) e não confere a assinatura. Qualquer um monta um token com `sub` de outra pessoa. `verify` checa assinatura e expiração."
+            },
+            {
+              "id": "u3-d1-q3",
+              "type": "scenario",
+              "prompt": "Qual desenho reduz esse risco?",
+              "context": "O access token JWT vale 7 dias. Um token vazou num log e não há como invalidá-lo antes de expirar.",
+              "options": [
+                "Criptografar o payload do JWT",
+                "Access token curto (ex.: 15 min) e refresh token guardado no servidor, com rotação e revogação",
+                "Guardar o JWT no localStorage em vez de cookie",
+                "Aumentar a validade para 30 dias para o usuário logar menos"
+              ],
+              "answer": 1,
+              "explanation": "JWT é verificado sem consultar o banco, por isso não dá para revogar. Com validade curta, um vazamento vale minutos. O refresh token fica numa tabela, então dá para revogar no logout ou ao detectar abuso."
+            },
+            {
+              "id": "u3-d1-q4",
+              "type": "order",
+              "prompt": "O access token expirou. Ordene o fluxo de renovação com rotação de refresh token.",
+              "items": [
+                "A API responde 401 porque o access token expirou",
+                "O cliente envia o refresh token para `POST /auth/refresh`",
+                "O servidor confere se o refresh token existe, está válido e não foi revogado",
+                "O servidor invalida esse refresh token e emite um par novo (access + refresh)",
+                "O cliente repete a requisição original com o access token novo"
+              ],
+              "explanation": "Com rotação, cada refresh token só serve uma vez. Se um token já usado aparecer de novo, é sinal de roubo: o servidor pode revogar toda a família de tokens daquela sessão."
+            },
+            {
+              "id": "u3-d1-q5",
+              "type": "tradeoff",
+              "prompt": "Onde um SPA deve guardar o refresh token?",
+              "compare": [
+                "Cookie httpOnly",
+                "localStorage"
+              ],
+              "options": [
+                "Cookie sem `httpOnly`, para o front conseguir ler e renovar",
+                "Cookie `httpOnly` + `Secure` + `SameSite`, porque nenhum JavaScript, nem um script injetado por XSS, consegue lê-lo",
+                "localStorage, porque é imune a XSS",
+                "localStorage, porque cookies são enviados para qualquer site"
+              ],
+              "answer": 1,
+              "explanation": "Tudo que está no localStorage um XSS consegue ler e mandar para fora. Cookie `httpOnly` é invisível ao JavaScript. O risco que sobra é CSRF, reduzido com `SameSite=Lax` ou `Strict` e com a rota de refresh aceitando só POST."
+            },
+            {
+              "id": "u3-d1-q6",
+              "type": "scenario",
+              "prompt": "Qual é o problema?",
+              "context": "A tela de login responde \"E-mail não cadastrado\" ou \"Senha incorreta\", conforme o caso.",
+              "options": [
+                "Nenhum: mensagens específicas são boa prática de UX",
+                "Deveria redirecionar para o cadastro automaticamente",
+                "O e-mail inexistente deveria responder 404",
+                "Permite descobrir quais e-mails têm conta; responda sempre \"E-mail ou senha inválidos\""
+              ],
+              "answer": 3,
+              "explanation": "Isso é enumeração de contas: um atacante testa uma lista de e-mails e descobre quem é cliente, para depois tentar senhas vazadas. Use a mesma mensagem e um tempo de resposta parecido nos dois casos."
+            }
+          ]
+        },
+        {
+          "id": "u3-d2",
+          "title": "Ataques e defesas",
+          "concepts": [
+            "BOLA/IDOR",
+            "mass assignment",
+            "força bruta",
+            "CORS com cookies",
+            "segredo vazado"
+          ],
+          "xp": 15,
+          "deep": true,
+          "questions": [
+            {
+              "id": "u3-d2-q1",
+              "type": "find_bug",
+              "prompt": "Um usuário logado consegue ver a fatura de outros trocando o número na URL. Qual linha?",
+              "code": "fastify.get('/faturas/:id', { preHandler: autenticar }, async (req) => {\n  const fatura = await repo.faturas.buscar(req.params.id);\n  if (!fatura) throw new ErroNaoEncontrado();\n  return fatura;\n});",
+              "answer": 1,
+              "fix": "const fatura = await repo.faturas.buscar({ id: req.params.id, donoId: req.user.id });",
+              "explanation": "Autenticar não é autorizar: a rota sabe QUEM é o usuário, mas não confere se a fatura é DELE. É o BOLA/IDOR, primeiro do OWASP API Top 10. Filtre sempre pelo dono e responda 404 (não 403) para não confirmar que o id existe."
+            },
+            {
+              "id": "u3-d2-q2",
+              "type": "find_bug",
+              "prompt": "Um usuário mandou `{ \"nome\": \"Ana\", \"role\": \"admin\" }` para esta rota e virou administrador. Qual linha?",
+              "code": "fastify.patch('/me', { preHandler: autenticar }, async (req) => {\n  const dados = req.body;\n  return repo.usuarios.atualizar(req.user.id, dados);\n});",
+              "answer": 1,
+              "fix": "const dados = AtualizarPerfil.parse(req.body); // z.object({ nome, bio })",
+              "explanation": "É mass assignment: o body vai inteiro para o banco, inclusive campos que o usuário não deveria controlar (`role`, `saldo`, `verificado`). Passe por um schema com só os campos permitidos. O `z.object` do Zod descarta chaves desconhecidas por padrão."
+            },
+            {
+              "id": "u3-d2-q3",
+              "type": "scenario",
+              "prompt": "Qual é a melhor resposta?",
+              "context": "Os logs mostram 50 mil tentativas de login por hora, de vários IPs, testando senhas comuns em muitas contas diferentes.",
+              "options": [
+                "Rate limit no login por IP e por conta, com espera progressiva, alerta e, se possível, MFA",
+                "Desligar o CORS da API",
+                "Responder 404 em vez de 401 nas falhas",
+                "Trocar Argon2 por SHA-256 para o login responder mais rápido"
+              ],
+              "answer": 0,
+              "explanation": "É credential stuffing ou password spraying. Limitar por conta pega ataques distribuídos em muitos IPs; limitar por IP pega um IP testando muitas contas. Hash lento é proposital: deixa caro testar senhas se o banco vazar."
+            },
+            {
+              "id": "u3-d2-q4",
+              "type": "tradeoff",
+              "prompt": "Sua API usa cookie de sessão e só o seu front em `app.exemplo.com` deve chamá-la. Como configurar o CORS?",
+              "compare": [
+                "origin: '*'",
+                "Lista de origens"
+              ],
+              "options": [
+                "Desligar o CORS, porque o navegador já bloqueia tudo",
+                "`origin: '*'`, porque CORS protege o servidor contra qualquer ataque",
+                "`origin: '*'` com `credentials: true`, que libera tudo e funciona com cookies",
+                "Lista explícita (`origin: ['https://app.exemplo.com']`) com `credentials: true`"
+              ],
+              "answer": 3,
+              "explanation": "O navegador recusa `*` junto com credenciais, então só uma lista funciona com cookie. E CORS não protege o servidor: é uma regra do navegador sobre quais sites podem ler a resposta. `curl` ou um script ignoram CORS, por isso a autenticação continua necessária."
+            },
+            {
+              "id": "u3-d2-q5",
+              "type": "order",
+              "prompt": "Uma chave de API de produção foi parar num commit público. Ordene a resposta.",
+              "items": [
+                "Revogar ou rotacionar a chave no provedor imediatamente",
+                "Colocar a chave nova no gerenciador de segredos e fazer o deploy",
+                "Verificar nos logs do provedor se a chave vazada foi usada",
+                "Limpar o histórico do Git e ativar varredura de segredos no CI"
+              ],
+              "explanation": "Robôs varrem o GitHub e usam chaves em minutos, então apagar o commit não resolve: a chave já deve ser considerada comprometida. Primeiro corte o acesso, depois restaure o serviço, investigue o estrago e por fim evite que aconteça de novo."
+            },
+            {
+              "id": "u3-d2-q6",
+              "type": "scenario",
+              "prompt": "Qual é o risco principal?",
+              "context": "Para depurar, um dev adicionou `req.log.info({ headers: req.headers }, 'requisição')` em todas as rotas, e isso foi para produção.",
+              "options": [
+                "Os logs passam a guardar tokens e cookies do header `Authorization`, e quem lê os logs pode sequestrar sessões",
+                "Os logs ficam maiores, mas não há risco de segurança",
+                "Os headers aparecem para o usuário na resposta",
+                "O Fastify bloqueia a requisição quando ela é logada"
+              ],
+              "answer": 0,
+              "explanation": "Logs costumam ter acesso mais amplo e retenção maior que o banco. Use o `redact` do Pino (ex.: `redact: ['req.headers.authorization', 'req.headers.cookie']`) e nunca logue senha, token ou corpo inteiro de login."
             }
           ]
         }
@@ -1746,6 +2498,191 @@
               ],
               "answer": 0,
               "explanation": "Se algo quebrar, o selo do README fica vermelho antes de chegar em produção."
+            }
+          ]
+        }
+      ],
+      "deep": [
+        {
+          "id": "u4-d1",
+          "title": "TypeScript e testes",
+          "concepts": [
+            "strict e undefined",
+            "await em asserções",
+            "banco real nos testes",
+            "pirâmide de testes",
+            "TDD",
+            "z.infer"
+          ],
+          "xp": 15,
+          "deep": true,
+          "questions": [
+            {
+              "id": "u4-d1-q1",
+              "type": "find_bug",
+              "prompt": "Com `strict: true`, o `tsc` acusa um erro neste arquivo. Em qual linha?",
+              "code": "type Usuario = { id: number; nome: string; email?: string };\n\nfunction dominio(u: Usuario): string {\n  return u.email.split('@')[1];\n}",
+              "answer": 3,
+              "fix": "return u.email?.split('@')[1] ?? 'sem-email';",
+              "explanation": "`email?` significa `string | undefined`. Com `strictNullChecks`, o TypeScript não deixa chamar `.split` em algo que pode ser `undefined`, o que seria um `TypeError` em produção. Trate o caso ausente."
+            },
+            {
+              "id": "u4-d1-q2",
+              "type": "find_bug",
+              "prompt": "Este teste passa mesmo quando `criarUsuario` aceita o e-mail duplicado. Qual linha?",
+              "code": "test('rejeita e-mail duplicado', async () => {\n  await criarUsuario({ email: 'a@a.com' });\n  expect(criarUsuario({ email: 'a@a.com' })).rejects.toThrow(ErroConflito);\n});",
+              "answer": 2,
+              "fix": "await expect(criarUsuario({ email: 'a@a.com' })).rejects.toThrow(ErroConflito);",
+              "explanation": "`.rejects` devolve uma Promise. Sem `await`, o teste termina antes de a asserção rodar e passa sem checar nada (o Vitest só avisa no console). Asserções assíncronas sempre precisam de `await`."
+            },
+            {
+              "id": "u4-d1-q3",
+              "type": "scenario",
+              "prompt": "O que muda isso?",
+              "context": "Os testes de integração usam SQLite em memória, mas produção usa PostgreSQL. Uma consulta com `ILIKE` e JSONB passou nos testes e quebrou em produção.",
+              "options": [
+                "Subir a cobertura para 100%",
+                "Mockar o banco em todos os testes",
+                "Rodar os testes de integração contra um PostgreSQL real e descartável (ex.: Testcontainers)",
+                "Testar direto em produção com feature flag"
+              ],
+              "answer": 2,
+              "explanation": "Teste de integração só vale se integra com a coisa real. SQLite não tem `ILIKE` nem JSONB do mesmo jeito. Testcontainers sobe um Postgres da mesma versão num container por execução. Cobertura alta com o banco errado continua deixando o bug passar."
+            },
+            {
+              "id": "u4-d1-q4",
+              "type": "tradeoff",
+              "prompt": "Você precisa testar uma regra de desconto com 10 faixas de preço e também que `POST /pedidos` grava o pedido no banco. Como dividir?",
+              "compare": [
+                "Testes unitários",
+                "Testes de integração"
+              ],
+              "options": [
+                "Unitários para as 10 faixas (rápidos, sem I/O) e alguns de integração para a rota com banco real",
+                "Só um teste end-to-end, que cobre tudo",
+                "Só unitários com o banco mockado, que já garantem a gravação",
+                "Só integração, passando pela rota uma vez para cada faixa"
+              ],
+              "answer": 0,
+              "explanation": "Regra pura com muitas combinações é ideal para teste unitário: milissegundos cada. A gravação no banco só se prova com integração. Passar as 10 faixas pela rota funciona, mas fica lento e o erro aponta para longe da causa."
+            },
+            {
+              "id": "u4-d1-q5",
+              "type": "order",
+              "prompt": "Ordene um ciclo de TDD.",
+              "items": [
+                "Escrever um teste para o comportamento que ainda não existe",
+                "Rodar e ver o teste falhar pelo motivo certo",
+                "Escrever o código mínimo para o teste passar",
+                "Refatorar com os testes continuando verdes"
+              ],
+              "explanation": "Ver o teste falhar primeiro prova que ele testa algo: um teste que nunca falhou pode estar passando por engano, como um `expect` sem `await`. Só depois de verde vale refatorar, com a rede de segurança ligada."
+            },
+            {
+              "id": "u4-d1-q6",
+              "type": "scenario",
+              "prompt": "Qual é a solução?",
+              "context": "Você tem um schema Zod `CriarUsuario` e também uma `interface CriarUsuarioDTO` escrita à mão. Os dois vivem divergindo depois de cada mudança.",
+              "options": [
+                "Trocar o tipo do DTO por `any`",
+                "Apagar o schema e confiar só no tipo",
+                "Gerar o schema a partir da interface em tempo de execução",
+                "Derivar o tipo do schema com `type CriarUsuarioDTO = z.infer<typeof CriarUsuario>`"
+              ],
+              "answer": 3,
+              "explanation": "Tipos do TypeScript somem na compilação, então não validam nada em runtime: o schema é necessário. Com `z.infer`, o schema é a fonte única e o tipo acompanha sozinho. Não dá para fazer o caminho inverso, porque a interface não existe em runtime."
+            }
+          ]
+        },
+        {
+          "id": "u4-d2",
+          "title": "Docker, logs e CI",
+          "concepts": [
+            "cache de camadas",
+            "dados sensíveis em log",
+            "logs estruturados",
+            "etapas do CI",
+            "multi-stage",
+            "depends_on com healthcheck"
+          ],
+          "xp": 15,
+          "deep": true,
+          "questions": [
+            {
+              "id": "u4-d2-q1",
+              "type": "find_bug",
+              "prompt": "Qualquer mudança em qualquer arquivo faz o `npm ci` rodar de novo no build da imagem. Qual linha causa isso?",
+              "code": "FROM node:22-slim\nWORKDIR /app\nCOPY . .\nRUN npm ci\nCMD [\"node\", \"dist/server.js\"]",
+              "answer": 2,
+              "fix": "COPY package.json package-lock.json ./\nRUN npm ci\nCOPY . .",
+              "explanation": "O Docker reaproveita uma camada só se nada antes dela mudou. Copiando tudo antes do `npm ci`, qualquer edição invalida a instalação. Copie primeiro só os manifests, instale e depois copie o código. E use um `.dockerignore` para `node_modules` e `.env`."
+            },
+            {
+              "id": "u4-d2-q2",
+              "type": "find_bug",
+              "prompt": "Este log de auditoria expõe dados que nunca deveriam ser gravados. Qual linha?",
+              "code": "fastify.post('/login', async (req, reply) => {\n  req.log.info({ body: req.body }, 'tentativa de login');\n  const tokens = await auth.login(req.body.email, req.body.senha);\n  return tokens;\n});",
+              "answer": 1,
+              "fix": "req.log.info({ email: req.body.email }, 'tentativa de login');",
+              "explanation": "O corpo do login tem a senha em texto puro, que vai parar no arquivo de log, na ferramenta de logs e em backups. Logue só o necessário (o e-mail ou um id) e configure `redact` no Pino como segunda barreira."
+            },
+            {
+              "id": "u4-d2-q3",
+              "type": "scenario",
+              "prompt": "O que resolve?",
+              "context": "Um cliente relatou um erro às 14h32. Os logs são `console.log('deu erro aqui')` em texto livre, de 6 instâncias misturadas, e você não acha a requisição dele.",
+              "options": [
+                "Mais `console.log` em cada linha do código",
+                "Gravar os logs num arquivo dentro do container",
+                "Logs estruturados em JSON (Pino) com `reqId`, nível, rota e id do usuário, para filtrar por campo",
+                "Desligar os logs em produção para ganhar desempenho"
+              ],
+              "answer": 2,
+              "explanation": "Com JSON dá para buscar `userId = 42 AND level >= 50` e seguir uma requisição pelo `reqId` em todas as linhas que ela gerou. Arquivo dentro do container some quando ele é recriado."
+            },
+            {
+              "id": "u4-d2-q4",
+              "type": "order",
+              "prompt": "Ordene as etapas de um pipeline de CI para um pull request.",
+              "items": [
+                "Checkout do código",
+                "Instalar dependências com `npm ci`",
+                "Lint e checagem de tipos (`tsc --noEmit`)",
+                "Testes automatizados",
+                "Build da imagem Docker"
+              ],
+              "explanation": "As checagens baratas e rápidas vêm primeiro: se o lint falha em 20 s, não vale gastar 5 min em testes e build. O build da imagem vem por último porque só interessa se o código está correto."
+            },
+            {
+              "id": "u4-d2-q5",
+              "type": "tradeoff",
+              "prompt": "Por que usar multi-stage no Dockerfile de produção de uma API TypeScript?",
+              "compare": [
+                "Imagem única",
+                "Multi-stage"
+              ],
+              "options": [
+                "Imagem única, porque as devDependencies são necessárias em produção",
+                "Imagem única, porque multi-stage deixa o container mais lento em execução",
+                "Multi-stage: compila numa etapa com as devDependencies e copia só o `dist` e as dependências de produção para a imagem final, menor e com menos superfície de ataque",
+                "Multi-stage, porque executa as etapas em paralelo em produção"
+              ],
+              "answer": 2,
+              "explanation": "O compilador, os tipos e as ferramentas de teste só servem no build. Deixá-los na imagem final aumenta o tamanho (deploy mais lento) e o número de pacotes com possíveis vulnerabilidades. Em execução, as duas imagens rodam igual."
+            },
+            {
+              "id": "u4-d2-q6",
+              "type": "scenario",
+              "prompt": "Qual é a correção?",
+              "context": "No `docker compose`, a API sobe antes de o Postgres aceitar conexões e falha na inicialização. A API já tem `depends_on: [db]`.",
+              "options": [
+                "Nada: o `depends_on` simples já espera o banco aceitar conexões",
+                "`healthcheck` no Postgres (ex.: `pg_isready`) e `depends_on` com `condition: service_healthy`, mais retry de conexão no app",
+                "Um `sleep 30` no início do comando da API",
+                "Rodar o Postgres e a API no mesmo container"
+              ],
+              "answer": 1,
+              "explanation": "O `depends_on` simples só espera o container iniciar, não o banco ficar pronto. Com healthcheck o compose espera o `pg_isready` passar. O retry no app continua importante, porque em produção o banco também pode reiniciar."
             }
           ]
         }
@@ -2076,6 +3013,192 @@
             }
           ]
         }
+      ],
+      "deep": [
+        {
+          "id": "u5-d1",
+          "title": "Cache e APIs externas",
+          "concepts": [
+            "TTL no cache",
+            "timeout no fetch",
+            "cache stampede",
+            "backoff exponencial",
+            "o que repetir",
+            "circuit breaker"
+          ],
+          "xp": 15,
+          "deep": true,
+          "questions": [
+            {
+              "id": "u5-d1-q1",
+              "type": "find_bug",
+              "prompt": "Mudanças de preço não aparecem nunca para os clientes. Qual linha?",
+              "code": "async function buscarProduto(id) {\n  const cache = await redis.get(`produto:${id}`);\n  if (cache) return JSON.parse(cache);\n  const produto = await db.produtos.buscar(id);\n  await redis.set(`produto:${id}`, JSON.stringify(produto));\n  return produto;\n}",
+              "answer": 4,
+              "fix": "await redis.set(`produto:${id}`, JSON.stringify(produto), 'EX', 300);",
+              "explanation": "Sem TTL, a chave fica no Redis para sempre e o preço antigo nunca sai. Defina uma expiração e também apague a chave (`redis.del`) quando o produto for atualizado."
+            },
+            {
+              "id": "u5-d1-q2",
+              "type": "find_bug",
+              "prompt": "Quando a API de câmbio trava, as requisições do seu servidor ficam penduradas por minutos e as conexões se acumulam. Qual linha?",
+              "code": "async function cotacao(moeda) {\n  const res = await fetch(`https://api.cambio.exemplo/${moeda}`);\n  if (!res.ok) throw new ErroExterno(res.status);\n  return res.json();\n}",
+              "answer": 1,
+              "fix": "const res = await fetch(url, { signal: AbortSignal.timeout(3000) });",
+              "explanation": "O `fetch` nativo não tem timeout por padrão. Um serviço lento prende suas requisições, memória e conexões até tudo cair junto. Sempre defina um limite com `AbortSignal.timeout`."
+            },
+            {
+              "id": "u5-d1-q3",
+              "type": "scenario",
+              "prompt": "O que evita isso?",
+              "context": "Um produto muito acessado fica em cache com TTL de 60 s. Quando a chave expira, 2 mil requisições batem no banco ao mesmo tempo e ele trava.",
+              "options": [
+                "Aumentar o pool do banco para 2 mil conexões",
+                "Deixar só uma requisição recalcular (um lock no Redis) enquanto as outras esperam ou usam o valor antigo, e variar o TTL com jitter",
+                "Remover o TTL da chave",
+                "Baixar o TTL para 1 s"
+              ],
+              "answer": 1,
+              "explanation": "Isso é cache stampede. Com um lock (`SET chave:lock 1 NX EX 5`), só quem pegou o lock vai ao banco. O jitter evita que muitas chaves expirem no mesmo segundo. Remover o TTL troca o problema por dados velhos."
+            },
+            {
+              "id": "u5-d1-q4",
+              "type": "order",
+              "prompt": "Ordene o que acontece numa chamada com retry e backoff exponencial.",
+              "items": [
+                "A 1ª tentativa falha com 503",
+                "Espera ~200 ms (com jitter) e tenta de novo",
+                "Falha outra vez e espera ~400 ms",
+                "Falha outra vez e espera ~800 ms",
+                "Esgotadas as tentativas, lança o erro ou usa um fallback"
+              ],
+              "explanation": "Dobrar a espera dá tempo para o serviço se recuperar sem afogá-lo em tentativas. O jitter (um valor aleatório somado) evita que milhares de clientes tentem de novo exatamente no mesmo instante."
+            },
+            {
+              "id": "u5-d1-q5",
+              "type": "tradeoff",
+              "prompt": "Quais erros de uma API externa vale repetir automaticamente?",
+              "compare": [
+                "Repetir",
+                "Falhar logo"
+              ],
+              "options": [
+                "Repetir todos os erros até dar certo",
+                "Nunca repetir, porque retry sempre duplica dados",
+                "Repetir 429, 503 e timeouts, que são transitórios; não repetir 400, 401 e 404, que vão falhar de novo",
+                "Repetir só o 400, porque o corpo pode ter chegado corrompido"
+              ],
+              "answer": 2,
+              "explanation": "Erros 4xx (exceto 408 e 429) dizem que o problema está no pedido: repetir só gasta cota. 429 deve respeitar o header `Retry-After`. E repetir um POST só é seguro se a operação for idempotente (ex.: com `Idempotency-Key`)."
+            },
+            {
+              "id": "u5-d1-q6",
+              "type": "scenario",
+              "prompt": "Qual padrão resolve?",
+              "context": "O serviço externo de frete está fora há 10 minutos. Cada pedido espera 3 s de timeout e mais 3 retries antes de falhar, e o checkout ficou lento para todo mundo.",
+              "options": [
+                "Guardar o erro no cache para sempre",
+                "Aumentar o timeout para 30 s",
+                "Aumentar os retries para 10",
+                "Circuit breaker: depois de várias falhas, parar de chamar por um tempo e usar um fallback (ex.: frete fixo)"
+              ],
+              "answer": 3,
+              "explanation": "Com o circuito aberto, as chamadas falham na hora e o fallback entra, em vez de cada usuário pagar 12 s por uma resposta que já se sabe que não vem. De tempos em tempos, uma chamada de teste verifica se o serviço voltou (meio-aberto)."
+            }
+          ]
+        },
+        {
+          "id": "u5-d2",
+          "title": "Filas e webhooks",
+          "concepts": [
+            "assinatura sobre o corpo bruto",
+            "jobs idempotentes",
+            "responder rápido",
+            "ciclo de vida do job",
+            "fila vs chamada direta",
+            "eventos fora de ordem"
+          ],
+          "xp": 15,
+          "deep": true,
+          "questions": [
+            {
+              "id": "u5-d2-q1",
+              "type": "find_bug",
+              "prompt": "Webhooks legítimos do provedor estão sendo rejeitados por \"assinatura inválida\" de vez em quando. Qual linha?",
+              "code": "fastify.post('/webhooks/pagamento', async (req, reply) => {\n  const assinatura = req.headers['x-assinatura'];\n  const esperada = crypto.createHmac('sha256', SEGREDO)\n    .update(JSON.stringify(req.body))\n    .digest('hex');\n  if (!iguais(assinatura, esperada)) return reply.code(401).send();\n  await fila.add('pagamento', req.body);\n  return reply.code(200).send();\n});",
+              "answer": 3,
+              "fix": ".update(req.rawBody)",
+              "explanation": "O provedor assinou os bytes exatos que enviou. Reconverter o objeto em JSON pode mudar espaços, ordem de chaves e escapes, e o HMAC deixa de bater. Calcule sobre o corpo bruto (`rawBody`) e compare com `crypto.timingSafeEqual`."
+            },
+            {
+              "id": "u5-d2-q2",
+              "type": "find_bug",
+              "prompt": "Quando o banco falha depois da cobrança, o retry do job cobra o cliente de novo. Qual linha precisa mudar?",
+              "code": "new Worker('cobrancas', async (job) => {\n  const { pedidoId, valor } = job.data;\n  await gateway.cobrar(pedidoId, valor);\n  await db.pedidos.marcarPago(pedidoId);\n}, { connection });",
+              "answer": 2,
+              "fix": "await gateway.cobrar(pedidoId, valor, { idempotencyKey: `cobranca-${pedidoId}` });",
+              "explanation": "Filas entregam pelo menos uma vez, então todo job pode rodar de novo. Passe uma chave de idempotência estável para o gateway: na repetição ele devolve a cobrança já feita em vez de criar outra."
+            },
+            {
+              "id": "u5-d2-q3",
+              "type": "scenario",
+              "prompt": "Como resolver?",
+              "context": "O provedor de pagamentos espera resposta do webhook em até 5 s. Seu handler emite a nota fiscal e envia e-mail antes de responder (~15 s). O provedor marca como falha e reenvia o evento.",
+              "options": [
+                "Validar a assinatura, gravar ou enfileirar o evento e responder 2xx na hora; processar depois num worker",
+                "Pedir ao provedor para aumentar o timeout",
+                "Usar `Promise.all` na nota e no e-mail para caber em 5 s",
+                "Responder 500 para o provedor tentar mais tarde"
+              ],
+              "answer": 0,
+              "explanation": "O webhook só precisa confirmar o recebimento. O trabalho pesado vai para a fila, com retries próprios. Como o provedor pode reenviar mesmo assim, deduplique pelo id do evento."
+            },
+            {
+              "id": "u5-d2-q4",
+              "type": "order",
+              "prompt": "Ordene o ciclo de vida de um job no BullMQ que falha uma vez e depois dá certo.",
+              "items": [
+                "A API adiciona o job com `queue.add`",
+                "Um worker pega o job, que fica ativo",
+                "O processamento lança um erro",
+                "O job espera o backoff e volta para a fila",
+                "Um worker tenta de novo e o job é concluído"
+              ],
+              "explanation": "Com `attempts` e `backoff` nas opções do job, o BullMQ cuida das novas tentativas. Se todas falharem, o job vai para a lista de falhos, de onde dá para investigar e reprocessar."
+            },
+            {
+              "id": "u5-d2-q5",
+              "type": "tradeoff",
+              "prompt": "No cadastro, o usuário recebe um e-mail de boas-vindas. Enviar dentro da requisição ou por uma fila?",
+              "compare": [
+                "Chamada direta",
+                "Fila"
+              ],
+              "options": [
+                "Direto, porque o `await` já repete se falhar",
+                "Direto na requisição, porque filas perdem mensagens",
+                "Fila: a rota responde rápido e o envio ganha retries se o provedor de e-mail cair",
+                "Fila, porque garante entrega exatamente uma vez"
+              ],
+              "answer": 2,
+              "explanation": "Dentro da requisição, um provedor de e-mail lento atrasa ou derruba o cadastro. Na fila, o cadastro conclui e o e-mail tem retries. Mas filas entregam pelo menos uma vez, não exatamente uma: o worker deve ser idempotente."
+            },
+            {
+              "id": "u5-d2-q6",
+              "type": "scenario",
+              "prompt": "Como tratar isso?",
+              "context": "Seu webhook recebeu `pagamento.aprovado` e, segundos depois, `pagamento.criado` (fora de ordem). O pedido voltou para \"pendente\".",
+              "options": [
+                "Recusar com 400 os eventos fora de ordem",
+                "Esperar 5 s antes de processar cada webhook",
+                "Trocar para HTTP/2, que garante a ordem",
+                "Não confiar na ordem: comparar a data ou versão do evento com o estado atual e ignorar eventos mais antigos"
+              ],
+              "answer": 3,
+              "explanation": "Webhooks chegam fora de ordem e repetidos por causa de retries e paralelismo. Guarde o id dos eventos processados (deduplicação) e só aplique uma mudança se ela for mais nova que o estado atual, ou consulte o estado na API do provedor."
+            }
+          ]
+        }
       ]
     },
     {
@@ -2312,6 +3435,198 @@
               ],
               "answer": 0,
               "explanation": "Ex.: Sentry avisa quando um erro novo aparece em produção."
+            }
+          ]
+        }
+      ],
+      "deep": [
+        {
+          "id": "u6-d1",
+          "title": "Arquitetura",
+          "concepts": [
+            "serviço sem HTTP",
+            "repositório e injeção",
+            "ADRs",
+            "caminho entre camadas",
+            "monólito modular",
+            "regra num lugar só"
+          ],
+          "xp": 15,
+          "deep": true,
+          "questions": [
+            {
+              "id": "u6-d1-q1",
+              "type": "find_bug",
+              "prompt": "Este serviço não pode ser reaproveitado num job ou num CLI. Qual linha quebra a separação de camadas?",
+              "code": "// services/pedidos.js\nexport async function criarPedido(dados, reply) {\n  if (dados.itens.length === 0) {\n    return reply.code(400).send({ erro: 'Pedido vazio' });\n  }\n  return pedidosRepo.criar(dados);\n}",
+              "answer": 3,
+              "accept": [
+                1
+              ],
+              "fix": "throw new ErroDeDominio('PEDIDO_VAZIO');",
+              "explanation": "O serviço é a camada de regras de negócio e não deve saber o que é HTTP. Com `reply` dentro dele, um worker ou um script não conseguem usá-lo. Lance um erro de domínio e deixe o error handler traduzir para 400."
+            },
+            {
+              "id": "u6-d1-q2",
+              "type": "find_bug",
+              "prompt": "Para testar este serviço é preciso um banco de verdade, e ele pula uma camada. Qual linha é o problema?",
+              "code": "import { db } from '../db.js';\n\nexport class PedidosService {\n  async total(clienteId) {\n    const pedidos = await db.query('SELECT total FROM pedidos WHERE cliente_id = $1', [clienteId]);\n    return pedidos.reduce((s, p) => s + p.total, 0);\n  }\n}",
+              "answer": 4,
+              "accept": [
+                0
+              ],
+              "fix": "constructor(pedidosRepo) { this.repo = pedidosRepo; }\nconst pedidos = await this.repo.listarPorCliente(clienteId);",
+              "explanation": "O serviço fala SQL direto, misturando regra e acesso a dados. Receba um repositório no construtor (injeção de dependência simples): em produção vai o repositório real, no teste um objeto falso."
+            },
+            {
+              "id": "u6-d1-q3",
+              "type": "scenario",
+              "prompt": "O que teria evitado isso?",
+              "context": "Seis meses depois, alguém pergunta por que o projeto usa Fastify e não Express, e ninguém lembra. A discussão recomeça do zero.",
+              "options": [
+                "Listar as dependências no README",
+                "Trocar para Express, que é mais popular",
+                "Comentar o motivo dentro do package.json",
+                "Registrar decisões importantes em ADRs curtos (contexto, decisão, consequências) no repositório"
+              ],
+              "answer": 3,
+              "explanation": "Um ADR (Architecture Decision Record) é um arquivo curto e datado, como `docs/adr/0003-fastify.md`. Ele guarda o porquê, que o código não mostra, e evita refazer a mesma discussão quando o time muda."
+            },
+            {
+              "id": "u6-d1-q4",
+              "type": "order",
+              "prompt": "Ordene o caminho de `POST /pedidos` numa arquitetura em camadas.",
+              "items": [
+                "A rota valida o body e pega o usuário autenticado",
+                "O serviço aplica as regras de negócio (estoque, desconto)",
+                "O repositório grava o pedido no banco",
+                "O serviço devolve o pedido criado",
+                "A rota responde 201 com o pedido serializado"
+              ],
+              "explanation": "Cada camada tem um papel: a rota cuida de HTTP (entrada e saída), o serviço das regras e o repositório do banco. A dependência vai sempre para dentro: a rota chama o serviço, nunca o contrário."
+            },
+            {
+              "id": "u6-d1-q5",
+              "type": "tradeoff",
+              "prompt": "Time de 3 pessoas, produto novo, ainda descobrindo o domínio. Qual arquitetura?",
+              "compare": [
+                "Microsserviços",
+                "Monólito modular"
+              ],
+              "options": [
+                "Microsserviços, porque reduzem a complexidade operacional",
+                "Microsserviços desde o início, porque escalam melhor em qualquer cenário",
+                "Monólito modular, com módulos bem separados: simples de desenvolver, testar e publicar, e dá para extrair serviços depois",
+                "Monólito sem módulos, porque organização só importa em projetos grandes"
+              ],
+              "answer": 2,
+              "explanation": "Microsserviços trocam complexidade de código por complexidade de operação: rede, deploys independentes, consistência distribuída, observabilidade. Valem quando times grandes precisam de autonomia. Com o domínio ainda mudando, fronteiras erradas entre serviços custam caro."
+            },
+            {
+              "id": "u6-d1-q6",
+              "type": "scenario",
+              "prompt": "Qual é a melhor correção?",
+              "context": "A regra \"cliente VIP tem frete grátis acima de R$ 100\" está copiada na rota de checkout, no job de recálculo e no relatório. As três versões divergiram.",
+              "options": [
+                "Centralizar a regra numa função de domínio (ex.: `calcularFrete`) usada pelos três",
+                "Mover a regra para uma trigger no banco",
+                "Documentar a regra no README",
+                "Copiar a versão mais recente para os três lugares"
+              ],
+              "answer": 0,
+              "explanation": "Regra de negócio duplicada diverge, é questão de tempo. Uma função única no serviço, com testes unitários, garante que checkout, job e relatório deem o mesmo resultado."
+            }
+          ]
+        },
+        {
+          "id": "u6-d2",
+          "title": "LLM e produção",
+          "concepts": [
+            "ferramentas com autorização",
+            "validar a saída do LLM",
+            "custo e timeout",
+            "RAG com embeddings",
+            "métricas e alertas",
+            "rollback com migrations"
+          ],
+          "xp": 15,
+          "deep": true,
+          "questions": [
+            {
+              "id": "u6-d2-q1",
+              "type": "find_bug",
+              "prompt": "Com o prompt \"mostre o pedido 1042\", um usuário viu o pedido de outra pessoa pelo chat com LLM. Qual linha?",
+              "code": "async function executarFerramenta(nome, input, usuario) {\n  if (nome === 'buscar_pedido') {\n    return repo.pedidos.buscar(input.pedidoId);\n  }\n  throw new Error(`Ferramenta desconhecida: ${nome}`);\n}",
+              "answer": 2,
+              "fix": "return repo.pedidos.buscar({ id: input.pedidoId, donoId: usuario.id });",
+              "explanation": "Os argumentos de uma ferramenta vêm do modelo, e o modelo obedece ao texto do usuário (prompt injection). Trate o input como entrada não confiável e aplique a mesma autorização da API: filtre pelo usuário logado, que vem da sessão e não do prompt."
+            },
+            {
+              "id": "u6-d2-q2",
+              "type": "find_bug",
+              "prompt": "Um dia o LLM devolveu `\"preco\": \"grátis\"` e o produto ficou com preço inválido. Qual linha deveria ter barrado isso?",
+              "code": "const resposta = await llm.gerar({ prompt, formato: 'json' });\nconst sugestao = JSON.parse(resposta.texto);\nawait repo.produtos.atualizar(sugestao.id, { preco: sugestao.preco });",
+              "answer": 1,
+              "fix": "const sugestao = Sugestao.parse(JSON.parse(resposta.texto)); // Zod: id, preco > 0",
+              "explanation": "Saída de LLM é entrada não confiável, como um body de usuário: pode vir com formato errado, campos faltando ou valores absurdos. Valide com um schema antes de usar e tenha um plano para quando falhar (repetir, usar um padrão ou pedir revisão humana)."
+            },
+            {
+              "id": "u6-d2-q3",
+              "type": "scenario",
+              "prompt": "Qual conjunto de medidas resolve?",
+              "context": "A feature de resumo com LLM às vezes leva 40 s e, num pico de uso, consumiu o orçamento do mês em um dia.",
+              "options": [
+                "Timeout com fallback, limite de `max_tokens`, cache de respostas repetidas e limite de uso por usuário, com alerta de custo",
+                "Trocar para o maior modelo disponível",
+                "Chamar o LLM duas vezes e usar a resposta mais rápida",
+                "Remover o timeout para a chamada nunca falhar"
+              ],
+              "answer": 0,
+              "explanation": "Chamadas a LLM são lentas, caras e às vezes falham, então trate como qualquer serviço externo: timeout, fallback e limites. Custo cresce com tokens, então `max_tokens`, cache e cotas por usuário controlam o gasto. O alerta avisa antes de a fatura chegar."
+            },
+            {
+              "id": "u6-d2-q4",
+              "type": "order",
+              "prompt": "Ordene o fluxo de uma busca com embeddings e pgvector (RAG).",
+              "items": [
+                "Ao indexar, gerar o embedding de cada trecho dos documentos e salvar no pgvector",
+                "Na pergunta do usuário, gerar o embedding da pergunta",
+                "Buscar os trechos mais próximos (`ORDER BY embedding <=> $1 LIMIT 5`)",
+                "Montar o prompt com a pergunta e os trechos encontrados",
+                "O LLM responde com base nos trechos, citando as fontes"
+              ],
+              "explanation": "O embedding transforma texto em vetor, e textos de sentido parecido ficam próximos. A indexação acontece antes, uma vez por documento; na hora da pergunta só se gera um embedding e se faz uma busca por proximidade. O LLM responde com base no que foi recuperado, o que reduz invenções."
+            },
+            {
+              "id": "u6-d2-q5",
+              "type": "tradeoff",
+              "prompt": "Você quer ser avisado quando a taxa de erros 5xx passar de 2% por 5 minutos. O que usar?",
+              "compare": [
+                "Logs",
+                "Métricas"
+              ],
+              "options": [
+                "Ler os logs todo dia de manhã",
+                "Um log por requisição, que já dispara o alerta sozinho",
+                "Uma métrica de taxa de erro com alerta por limite, e os logs para investigar o detalhe depois",
+                "Um teste end-to-end em produção a cada hora"
+              ],
+              "answer": 2,
+              "explanation": "Métricas são números agregados, baratos e feitos para alertas (\"taxa > 2% por 5 min\"). Logs têm o detalhe de cada evento e servem para entender o porquê. Um avisa, o outro explica. Ler logs à mão não escala e chega tarde."
+            },
+            {
+              "id": "u6-d2-q6",
+              "type": "scenario",
+              "prompt": "Como evitar isso nos próximos deploys?",
+              "context": "Um deploy das 18h subiu com bug. O código novo dependia de uma migration que renomeou uma coluna, e o rollback do código quebrou tudo porque a coluna antiga não existe mais.",
+              "options": [
+                "Rodar as migrations manualmente depois do deploy",
+                "Nunca fazer rollback, só corrigir para frente",
+                "Fazer migrations compatíveis com a versão anterior (expandir e depois contrair), para poder voltar o código sem mexer no banco",
+                "Renomear a coluna de volta direto em produção"
+              ],
+              "answer": 2,
+              "explanation": "Renomear de uma vez quebra a versão anterior. Em passos: criar a coluna nova, gravar nas duas, migrar os dados, ler da nova e só num deploy posterior remover a antiga. Assim qualquer versão recente roda com o banco atual e o rollback é seguro."
             }
           ]
         }

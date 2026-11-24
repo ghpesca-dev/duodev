@@ -16,7 +16,7 @@ Para testar no celular na mesma rede, use o IP do computador (a instalação com
 - `config.js`: URL e chave pública do Supabase. Em branco, o app funciona só local, sem login.
 - `sync.js` + `vendor/supabase.js` (supabase-js 2.45.4, MIT): login e sincronização.
 - `sounds.js`: efeitos sonoros sintetizados com Web Audio (sem arquivos de áudio). Ver “Sons” abaixo.
-- `curso.json`: cópia do curso. Após editar `conteudo/gerar_curso.py`, rode `python3 conteudo/gerar_curso.py curso.json` (na raiz do repositório).
+- `curso.json`: cópia do curso. Após editar `conteudo/gerar_curso.py` ou `conteudo/aprofundar.py`, rode `python3 conteudo/gerar_curso.py curso.json` (na raiz do repositório).
 - `manifest.webmanifest`, `sw.js`, `icons/`: PWA. Ao mudar arquivos, aumente `CACHE` em `sw.js`.
 
 ## Regras do jogo (topo do app.js)
@@ -25,6 +25,13 @@ Para testar no celular na mesma rede, use o IP do computador (a instalação com
 - Pergunta errada volta no fim da lição. A lição termina quando todas forem acertadas.
 - Ofensiva: dias seguidos com pelo menos uma lição. Meta do dia: 20 XP.
 - Progresso salvo no localStorage (chave `duodev:v1`). Atalhos: 1 a 4 escolhem, Enter verifica/continua, Esc sai.
+
+## Aprofundar
+- Cada unidade tem um bloco "Aprofundar" com 2 lições de 6 desafios (14 lições, 84 desafios), escritos em `conteudo/aprofundar.py`.
+- Libera quando todas as lições básicas da unidade estão concluídas. Fica fora da trilha linear, então não bloqueia a unidade seguinte nem mexe no progresso de quem já avançou.
+- Quatro tipos: **cenário prático** (situação real + escolha), **encontre o bug** (toque na linha; depois mostra a correção), **coloque na ordem** (monte a sequência tocando nos passos) e **trade-off** (duas abordagens, escolha a certa pelo motivo certo).
+- Regras iguais às das lições: +15 XP (+5 sem erros), erro custa vida na primeira vez, refazer dá +5 XP e devolve 1 vida. Os desafios entram na revisão espaçada como qualquer pergunta.
+- Atalhos: 1 a 9 escolhem opção, linha ou passo; Backspace tira o último passo da sequência.
 
 ## Revisão espaçada (passo 3)
 - Cada pergunta respondida vira um cartão em `srs` no localStorage: `{ box, due, last, reps, lapses }`, pelo id estável da pergunta.

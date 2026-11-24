@@ -2,6 +2,7 @@
 # Convenção: em mc() e fb(), a resposta certa é sempre a PRIMEIRA opção;
 # o script embaralha de forma determinística e grava o índice correto.
 import json, random, sys
+from aprofundar import DEEP
 
 def mc(prompt, options, explanation, code=None):
     return {"type": "multiple_choice", "prompt": prompt, "code": code, "options": options, "explanation": explanation}
@@ -486,6 +487,40 @@ U("Projeto final", "Arquitetura em camadas, feature com LLM, deploy, OpenAPI e o
 ]),
 ]
 
+def build_deep_q(qid, q):
+    out = {"id": qid, "type": q["type"], "prompt": q["prompt"]}
+    if q.get("context"):
+        out["context"] = q["context"]
+    if q.get("compare"):
+        out["compare"] = q["compare"]
+    if q.get("code"):
+        out["code"] = q["code"]
+    t = q["type"]
+    if t in ("scenario", "tradeoff"):
+        opts = q["options"]
+        assert len(opts) == len(set(opts)) and len(opts) == 4, qid
+        shuffled = opts[:]
+        random.Random(qid).shuffle(shuffled)
+        out["options"] = shuffled
+        out["answer"] = shuffled.index(opts[0])
+    elif t == "find_bug":
+        lines = q["code"].split("\n")
+        def find(sub):
+            hits = [i for i, ln in enumerate(lines) if sub in ln]
+            assert len(hits) == 1, (qid, sub, hits)
+            return hits[0]
+        out["answer"] = find(q["line"])
+        if q["also"]:
+            out["accept"] = [find(x) for x in q["also"]]
+        out["fix"] = q["fix"]
+    elif t == "order":
+        assert 3 <= len(q["items"]) <= 7 and len(set(q["items"])) == len(q["items"]), qid
+        out["items"] = q["items"]
+    else:
+        raise ValueError(qid)
+    out["explanation"] = q["explanation"]
+    return out
+
 def build():
     course = {
         "schemaVersion": 1,
@@ -524,6 +559,14 @@ def build():
                 out["explanation"] = q["explanation"]
                 lesson["questions"].append(out)
             unit["lessons"].append(lesson)
+        # Nível "Aprofundar": liberado depois das lições básicas da unidade.
+        unit["deep"] = []
+        for di, d in enumerate(DEEP[ui], 1):
+            did = f"u{ui}-d{di}"
+            dl = {"id": did, "title": d["title"], "concepts": d["concepts"], "xp": 15, "deep": True, "questions": []}
+            for qi, q in enumerate(d["questions"], 1):
+                dl["questions"].append(build_deep_q(f"{did}-q{qi}", q))
+            unit["deep"].append(dl)
         course["units"].append(unit)
     return course
 
@@ -538,3 +581,6 @@ if __name__ == "__main__":
     print("V/F:", Counter(q["answer"] for q in qs if q["type"] == "true_false"))
     for u in c["units"]:
         print(f'- {u["title"]}: ' + "; ".join(f'{l["title"]} ({len(l["questions"])})' for l in u["lessons"]))
+    dq = [q for u in c["units"] for l in u["deep"] for q in l["questions"]]
+    print("aprofundar: lições", sum(len(u["deep"]) for u in c["units"]), "desafios", len(dq), Counter(q["type"] for q in dq))
+    print("posição da resposta (cenário/trade-off):", Counter(q["answer"] for q in dq if "options" in q))

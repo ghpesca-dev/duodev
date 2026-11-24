@@ -1,6 +1,6 @@
 // Service worker do DuoDev: deixa o app abrir offline.
 // Troque a versão quando mudar arquivos do app para forçar a atualização do cache.
-const CACHE = 'duodev-v4';
+const CACHE = 'duodev-v5';
 const SHELL = [
   './', 'index.html', 'styles.css', 'app.js', 'config.js', 'sync.js', 'sounds.js', 'vendor/supabase.js', 'curso.json', 'manifest.webmanifest',
   'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-180.png',
